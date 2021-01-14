@@ -1,21 +1,16 @@
 <?php
 
-use App\State;
+use App\Models\City;
+use App\Models\State;
 use Faker\Generator as Faker;
+use Illuminate\Database\Eloquent\Factory;
 
-$factory->define(App\City::class, function (Faker $faker) {
+/** @var Factory $factory */
+
+$factory->define(City::class, function (Faker $faker) {
     return [
-        'state_id' => function () {
-
-            $state = State::query()->inRandomOrder()->first();
-
-            if (empty($state)) {
-                $state = factory(State::class)->create();
-            }
-
-            return $state->getKey();
-        },
+        'state_id' => factory(State::class)->create(),
         'name' => $faker->city,
-        'ibge' => $faker->randomNumber(6),
+        'ibge_code' => $faker->numerify('########'),
     ];
 });

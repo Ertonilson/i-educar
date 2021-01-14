@@ -4,6 +4,7 @@
     <meta http-equiv='Content-Type' content='text/html; charset=UTF-8'>
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="-1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <title>i-Educar @if(isset($title)) - {!! $title !!} @endif</title>
 
@@ -12,8 +13,17 @@
             'slug': '{{$config['app']['database']['dbname']}}',
             'user_id': '{{$loggedUser->personId}}',
             'user_name': '{{$loggedUser->name}}',
-            'user_email': '{{$loggedUser->email}}'
+            'user_email': '{{$loggedUser->email}}',
+            'user_role': '{{$loggedUser->role}}',
+            'user_created_at': parseInt('{{$loggedUser->created_at}}', 10),
+            'institution': '{{ $loggedUser->institution }}',
+            'city': '{{ $loggedUser->city }}',
+            'state': '{{ $loggedUser->state }}',
+            'students_count': '{{ $loggedUser->students_count }}',
+            'teachers_count': '{{ $loggedUser->teachers_count }}',
+            'classes_count': '{{ $loggedUser->classes_count }}',
         }];
+        window.useEcho = '{{ config('broadcasting.default') }}' !== '';
     </script>
 
     @if(!empty($config['app']['gtm']['id']))
@@ -161,15 +171,25 @@
                             <a href="{{ url('intranet/agenda.php') }}">Agenda</a>
                             <a href="{{ url('intranet/index.php') }}">Calendário</a>
                             <a href="{{ url('intranet/meusdados.php') }}">Meus dados</a>
-                            <a href="{{ url('intranet/logof.php') }}">Sair</a>
+                            <a href="{{ url('intranet/logof.php') }}" id="logout">Sair</a>
                         </div>
                     </div>
                     <a href="{{ url('intranet/meusdados.php') }}" class="avatar" title="Meus dados">
                         <img height="35" src="{{ url('intranet/imagens/user-perfil.png') }}" alt="Perfil">
                     </a>
-                    <a href="#" class="notifications">
-                        <img alt="Notificação" id="notificacao" src="{{ url('intranet/imagens/icon-nav-notifications.png') }}">
-                    </a>
+                    <div class="dropdown notifications">
+                        <div class="dropbtn notifications">
+                            <img alt="Notificação" src="{{ url('intranet/imagens/icon-nav-notifications.png') }}">
+                            <span class="notification-balloon"></span>
+                        </div>
+                        <div class="dropdown-content-notifications">
+                            <div class="notifications-bar">
+                                <span> Notificações </span>
+                                <a href="/notificacoes" class="btn-all-notifications">Ver todas</a>
+                                <a class="btn-mark-all-read">Marcar todas como lidas (<span class="not-read-count">0</span>)</a>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </header>
         </td>
@@ -232,47 +252,6 @@
     var aux = '';
     var aberto = false;
 
-    function CarregaDetalhe(id_div, endereco) {
-        var elemento_div = document.getElementById(id_div);
-        if (endereco != '') {
-            xmlhttp.open("GET", endereco, true);
-            xmlhttp.onreadystatechange = function () {
-                if (xmlhttp.readyState == 4) {
-                    elemento_div.innerHTML = xmlhttp.responseText;
-                }
-            }
-
-            xmlhttp.send(null);
-        }
-    }
-
-    function AbreFecha(id_div, id_img) {
-        var elemento_div = document.getElementById(id_div);
-        var elemento_img = document.getElementById(id_img);
-
-        if (!aberto) {
-            elemento_div.style.overflow = 'visible';
-            if (goodIE) {
-                elemento_div.style.height = '0px';
-                elemento_img.src = 'excluir_1.gif';
-                elemento_img.alt = 'Fechar';
-            }
-            else {
-                elemento_div.style.height = '100%';
-                elemento_img.src = 'excluir_1.gif';
-                elemento_img.alt = 'Fechar';
-            }
-        }
-        else {
-            elemento_img.src = 'log-info.gif';
-            elemento_div.style.overflow = 'hidden';
-            elemento_div.style.height = '1px';
-            elemento_img.alt = 'Visualizar detalhes';
-        }
-
-        aberto = !aberto;
-    }
-
     function AdicionaItem(chave, item, nome_pai, submete) {
         var x = document.getElementById(nome_pai);
 
@@ -323,8 +302,21 @@
 <script type="text/javascript" src="{{ Asset::get("/intranet/scripts/select2/select2.full.min.js") }}"></script>
 <script type="text/javascript" src="{{ Asset::get("/intranet/scripts/select2/pt-BR.js") }}"></script>
 <script type="text/javascript" src="{{ Asset::get("/intranet/scripts/flash-messages.js") }}"></script>
+<script type="text/javascript" src="{{ Asset::get("/js/app.js") }}"></script>
+<script type="text/javascript" src="{{ Asset::get("/intranet/scripts/notifications.js") }}"></script>
+<script>
+    getNotifications();
+
+    if (window.useEcho) {
+        startListenChannel('ieducar-{{\DB::getDefaultConnection()}}-notification-{{md5($loggedUser->personId)}}');
+    }
+</script>
 
 @include('layout.vue')
+
+@stack('scripts')
+
+@stack('end')
 
 </body>
 </html>

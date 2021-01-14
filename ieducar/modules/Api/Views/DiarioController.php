@@ -17,9 +17,6 @@ require_once 'include/modules/clsModulesNotaExame.inc.php';
 require_once 'App/Model/MatriculaSituacao.php';
 require_once 'Portabilis/String/Utils.php';
 
-//todo: Mover pra algum outro lugar
-require_once __DIR__ . '/../../../vendor/autoload.php';
-
 class DiarioController extends ApiCoreController
 {
 
@@ -76,7 +73,13 @@ class DiarioController extends ApiCoreController
 
         $valid = in_array($componenteCurricularId, $componentesTurma);
         if (!$valid) {
-            throw new CoreExt_Exception("Componente curricular de código $componenteCurricularId não existe para a turma $turmaId .");
+            $this->messenger->append("Componente curricular de código {$componenteCurricularId} não existe para a turma {$turmaId}.", 'error');
+            $this->appendResponse('error', [
+                'code' => Error::DISCIPLINE_NOT_EXISTS_FOR_SCHOOL_CLASS,
+                'message' => "Componente curricular de código {$componenteCurricularId} não existe para a turma {$turmaId}.",
+            ]);
+
+            return false;
         }
 
         return $valid;
@@ -225,44 +228,45 @@ class DiarioController extends ApiCoreController
                         continue;
                     }
 
-                    $valor = $notaTurmaAlunoDisciplina['nota'];
+                    $regra = $serviceBoletim->getEvaluationRule();
+
+                    $notaOriginal = $notaTurmaAlunoDisciplina['nota'];
                     $notaRecuperacao = $notaTurmaAlunoDisciplina['recuperacao'];
                     $nomeCampoRecuperacao = $this->defineCampoTipoRecuperacao($matriculaId);
-                    $valor = $this->truncate($valor, 4);
+                    $notaOriginal = $this->truncate($notaOriginal, 4);
 
-                    $recuperacaoEspecifica = $nomeCampoRecuperacao == 'notaRecuperacaoEspecifica';
+                    $valorNota = $serviceBoletim->calculateStageScore($etapa, $notaOriginal, $notaRecuperacao);
 
-                    $notaAposRecuperacao = (($notaRecuperacao > $valor) ? $notaRecuperacao : $valor);
+                    $notaValidacao = $notaOriginal;
+                    if (is_numeric($valorNota)) {
+                        $notaValidacao = $valorNota;
+                    }
 
-                    $valorNota = $recuperacaoEspecifica ? $valor : $notaAposRecuperacao;
-
-                    $regra = $serviceBoletim->getRegra();
-
-                    if ($etapa == 'Rc' && $valorNota > $regra->notaMaximaExameFinal) {
-                        $this->messenger->append("A nota {$valorNota} está acima da configurada para nota máxima para exame que é {$regra->notaMaximaExameFinal}.", 'error');
+                    if ($etapa == 'Rc' && $notaValidacao > $regra->nota_maxima_exame_final) {
+                        $this->messenger->append("A nota {$valorNota} está acima da configurada para nota máxima para exame que é {$regra->nota_maxima_exame_final}.", 'error');
                         $this->appendResponse('error', [
                             'code' => Error::EXAM_SCORE_GREATER_THAN_MAX_ALLOWED,
-                            'message' => "A nota {$valorNota} está acima da configurada para nota máxima para exame que é {$regra->notaMaximaExameFinal}.",
+                            'message' => "A nota {$valorNota} está acima da configurada para nota máxima para exame que é {$regra->nota_maxima_exame_final}.",
                         ]);
 
                         return false;
                     }
 
-                    if ($etapa != 'Rc' && $valorNota > $regra->notaMaximaGeral) {
-                        $this->messenger->append("A nota {$valorNota} está acima da configurada para nota máxima geral que é {$regra->notaMaximaGeral}.", 'error');
+                    if ($etapa != 'Rc' && $notaValidacao > $regra->nota_maxima_geral && !$regra->isSumScoreCalculation()) {
+                        $this->messenger->append("A nota {$valorNota} está acima da configurada para nota máxima geral que é {$regra->nota_maxima_geral}.", 'error');
                         $this->appendResponse('error', [
                             'code' => Error::SCORE_GREATER_THAN_MAX_ALLOWED,
-                            'message' => "A nota {$valorNota} está acima da configurada para nota máxima geral que é {$regra->notaMaximaGeral}.",
+                            'message' => "A nota {$valorNota} está acima da configurada para nota máxima geral que é {$regra->nota_maxima_geral}.",
                         ]);
 
                         return false;
                     }
 
-                    if ($valorNota < $regra->notaMinimaGeral) {
-                        $this->messenger->append("A nota {$valorNota} está abaixo da configurada para nota mínima geral que é {$regra->notaMinimaGeral}.", 'error');
+                    if ($notaValidacao < $regra->nota_minima_geral) {
+                        $this->messenger->append("A nota {$valorNota} está abaixo da configurada para nota mínima geral que é {$regra->nota_minima_geral}.", 'error');
                         $this->appendResponse('error', [
                             'code' => Error::SCORE_LESSER_THAN_MIN_ALLOWED,
-                            'message' => "A nota {$valorNota} está abaixo da configurada para nota mínima geral que é {$regra->notaMinimaGeral}.",
+                            'message' => "A nota {$valorNota} está abaixo da configurada para nota mínima geral que é {$regra->nota_minima_geral}.",
                         ]);
 
                         return false;
@@ -272,7 +276,8 @@ class DiarioController extends ApiCoreController
                         'componenteCurricular' => $componenteCurricularId,
                         'nota' => $valorNota,
                         'etapa' => $etapa,
-                        'notaOriginal' => $valor];
+                        'notaOriginal' => $notaOriginal
+                    ];
 
                     if (!empty($nomeCampoRecuperacao)) {
                         $array_nota[$nomeCampoRecuperacao] = $notaRecuperacao;
@@ -324,22 +329,25 @@ class DiarioController extends ApiCoreController
                                 }
                             }
 
-                            $notaRecuperacao = $notaTurmaAlunoDisciplina['recuperacao'];
-                            $nomeCampoRecuperacao = $this->defineCampoTipoRecuperacao($matriculaId);
-
-                            $recuperacaoEspecifica = $nomeCampoRecuperacao == 'notaRecuperacaoEspecifica';
-                            $notaAposRecuperacao = (($notaRecuperacao > $notaOriginal) ? $notaRecuperacao : $notaOriginal);
-                            $valorNota = is_null($recuperacaoEspecifica) ? $notaOriginal : $notaAposRecuperacao;
-
                             if (! $serviceBoletim = $this->serviceBoletim($turmaId, $alunoId)) {
                                 continue;
                             }
 
                             $regra = $serviceBoletim->getRegra();
 
-                            if ($valorNota > $regra->notaMaximaExameFinal) {
-                                $this->messenger->append("A nota {$valorNota} está acima da configurada para nota máxima para exame que é {$regra->notaMaximaGeral}.", 'error');
+                            $notaRecuperacao = $notaTurmaAlunoDisciplina['recuperacao'];
+                            $nomeCampoRecuperacao = $this->defineCampoTipoRecuperacao($matriculaId);
 
+                            $valorNota = $serviceBoletim->calculateStageScore($etapa, $notaOriginal, $notaRecuperacao);
+                            $notaMaximaPermitida = $regra->getNotaMaximaRecuperacao($etapa);
+
+                            if (empty($notaMaximaPermitida)) {
+                                $this->messenger->append("A nota máxima para recuperação não foi definida", 'error');
+                                return false;
+                            }
+
+                            if ($notaRecuperacao > $notaMaximaPermitida) {
+                                $this->messenger->append("A nota {$valorNota} está acima da configurada para nota máxima para exame que é {$notaMaximaPermitida}.", 'error');
                                 return false;
                             }
 
@@ -349,7 +357,8 @@ class DiarioController extends ApiCoreController
                                 'nota' => $valorNota,
                                 'etapa' => $etapa,
                                 'notaOriginal' => $notaOriginal,
-                                $nomeCampoRecuperacao => $notaRecuperacao];
+                                $nomeCampoRecuperacao => $notaRecuperacao
+                            ];
 
                             $nota = new Avaliacao_Model_NotaComponente($array_nota);
 
@@ -399,7 +408,13 @@ class DiarioController extends ApiCoreController
                     }
 
                     if ($this->getRegra($matriculaId)->get('tipoPresenca') != RegraAvaliacao_Model_TipoPresenca::POR_COMPONENTE) {
-                        throw new CoreExt_Exception(Portabilis_String_Utils::toLatin1("A regra da turma $turmaId não permite lançamento de faltas por componente."));
+                        $this->messenger->append("A regra da turma $turmaId não permite lançamento de faltas por componente.", 'error');
+                        $this->appendResponse('error', [
+                            'code' => Error::SCHOOL_CLASS_DOESNT_ALOW_FREQUENCY_BY_DISCIPLINE,
+                            'message' => "A regra da turma $turmaId não permite lançamento de faltas por componente.",
+                        ]);
+
+                        return false;
                     }
 
                     foreach ($faltaTurmaAluno as $componenteCurricularId => $faltaTurmaAlunoDisciplina) {

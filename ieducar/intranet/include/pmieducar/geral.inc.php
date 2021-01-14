@@ -1,6 +1,5 @@
 <?php
 
-require_once 'includes/bootstrap.php';
 require_once 'include/clsBanco.inc.php';
 require_once 'include/Geral.inc.php';
 require_once 'include/pmieducar/clsPermissoes.inc.php';
@@ -22,10 +21,7 @@ require_once 'include/pmieducar/clsPmieducarDisciplinaTopico.inc.php';
 require_once 'include/pmieducar/clsPmieducarDispensaDisciplina.inc.php';
 require_once 'include/pmieducar/clsPmieducarDisciplinaDependencia.inc.php';
 require_once 'include/pmieducar/clsPmieducarDocumentos.inc.php';
-require_once 'include/pmieducar/clsPmieducarEndereco.inc.php';
-require_once 'include/pmieducar/clsPmieducarEnderecoExterno.inc.php';
 require_once 'include/pmieducar/clsPmieducarEscola.inc.php';
-require_once 'include/pmieducar/clsPmieducarEscolaComplemento.inc.php';
 require_once 'include/pmieducar/clsPmieducarEscolaCurso.inc.php';
 require_once 'include/pmieducar/clsPmieducarEscolaDiasLetivos.inc.php';
 require_once 'include/pmieducar/clsPmieducarEscolaLocalizacao.inc.php';
@@ -44,13 +40,10 @@ require_once 'include/pmieducar/clsPmieducarInfraComodoFuncao.inc.php';
 require_once 'include/pmieducar/clsPmieducarInfraPredio.inc.php';
 require_once 'include/pmieducar/clsPmieducarInfraPredioComodo.inc.php';
 require_once 'include/pmieducar/clsPmieducarInstituicao.inc.php';
-require_once 'include/pmieducar/clsPmieducarMaterialDidatico.inc.php';
-require_once 'include/pmieducar/clsPmieducarMaterialTipo.inc.php';
 require_once 'include/pmieducar/clsPmieducarMatricula.inc.php';
 require_once 'include/pmieducar/clsPmieducarMatriculaExcessao.inc.php';
 require_once 'include/pmieducar/clsPmieducarMatriculaOcorrenciaDisciplinar.inc.php';
 require_once 'include/pmieducar/clsPmieducarMatriculaTurma.inc.php';
-require_once 'include/pmieducar/clsPmieducarMenuTipoUsuario.inc.php';
 require_once 'include/pmieducar/clsPmieducarMotivoAfastamento.inc.php';
 require_once 'include/pmieducar/clsPmieducarNivelEnsino.inc.php';
 require_once 'include/pmieducar/clsPmieducarNotaAluno.inc.php';
@@ -142,4 +135,3 @@ require_once 'include/pmieducar/clsPmieducarBackup.inc.php';
 require_once 'include/pmieducar/clsPmieducarAlunoCmf.inc.php';
 require_once 'include/pessoa/clsCadastroRaca.inc.php';
 require_once 'include/pessoa/clsCadastroFisicaRaca.inc.php';
-require_once 'include/pmieducar/alteraAtestadoParaDeclaracao.php';

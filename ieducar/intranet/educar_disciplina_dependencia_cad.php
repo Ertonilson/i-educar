@@ -50,7 +50,6 @@ class clsIndexBase extends clsBase
     {
         $this->SetTitulo($this->_instituicao . ' i-Educar - Dispensa Componente Curricular');
         $this->processoAp = 578;
-        $this->addEstilo("localizacaoSistema");
     }
 }
 
@@ -238,7 +237,7 @@ SQL;
 
         $db = new clsBanco();
         $db->consulta("SELECT (CASE
-                               WHEN escola.utiliza_regra_diferenciada AND serie.regra_avaliacao_diferenciada_id IS NOT NULL
+                               WHEN escola.utiliza_regra_diferenciada AND rasa.regra_avaliacao_diferenciada_id IS NOT NULL
                                THEN regra_avaliacao_diferenciada.qtd_disciplinas_dependencia
                                ELSE regra_avaliacao.qtd_disciplinas_dependencia
                                 END) AS qtd_disciplinas_dependencia
@@ -317,7 +316,7 @@ SQL;
         }
 
         $this->mensagem = 'Cadastro n&atilde;o realizado.<br />';
-        echo "<!--\nErro ao cadastrar clsPmieducarDisciplinaDependencia\nvalores obrigatorios\n is_numeric( $this->ref_cod_matricula ) && is_numeric( $this->ref_cod_serie ) && is_numeric( $this->ref_cod_escola ) && is_numeric( $this->ref_cod_disciplina ) \n-->";
+
         return FALSE;
     }
 
@@ -340,7 +339,7 @@ SQL;
         }
 
         $this->mensagem = 'Edi&ccedil;&atilde;o nÃ£o realizada.<br />';
-        echo "<!--\nErro ao editar clsPmieducarDisciplinaDependencia\nvalores obrigatorios\nif( is_numeric( $this->ref_cod_matricula ) && is_numeric( $this->ref_cod_serie ) && is_numeric( $this->ref_cod_escola ) && is_numeric( $this->ref_cod_disciplina )  )\n-->";
+
         return FALSE;
     }
 
@@ -364,7 +363,7 @@ SQL;
         }
 
         $this->mensagem = 'Exclus&atilde;o nÃ£o realizada.<br />';
-        echo "<!--\nErro ao excluir clsPmieducarDisciplinaDependencia\nvalores obrigatorios\nif( is_numeric( $this->ref_cod_matricula ) && is_numeric( $this->ref_cod_serie ) && is_numeric( $this->ref_cod_escola ) && is_numeric( $this->ref_cod_disciplina ) && is_numeric( $this->pessoa_logada ) )\n-->";
+
         return FALSE;
     }
 }

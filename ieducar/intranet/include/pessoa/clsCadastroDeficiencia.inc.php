@@ -1,79 +1,25 @@
 <?php
-class clsCadastroDeficiencia
+
+use iEducar\Legacy\Model;
+
+class clsCadastroDeficiencia extends Model
 {
     public $cod_deficiencia;
     public $nm_deficiencia;
     public $deficiencia_educacenso;
     public $desconsidera_regra_diferenciada;
-
-    /**
-     * Armazena o total de resultados obtidos na última chamada ao método lista().
-     *
-     * @var int
-     */
-    public $_total;
-
-    /**
-     * Nome do schema.
-     *
-     * @var string
-     */
-    public $_schema;
-
-    /**
-     * Nome da tabela.
-     *
-     * @var string
-     */
-    public $_tabela;
-
-    /**
-     * Lista separada por vírgula, com os campos que devem ser selecionados na
-     * próxima chamado ao método lista().
-     *
-     * @var string
-     */
-    public $_campos_lista;
-
-    /**
-     * Lista com todos os campos da tabela separados por vírgula, padrão para
-     * seleção no método lista.
-     *
-     * @var string
-     */
-    public $_todos_campos;
-
-    /**
-     * Valor que define a quantidade de registros a ser retornada pelo método lista().
-     *
-     * @var int
-     */
-    public $_limite_quantidade;
-
-    /**
-     * Define o valor de offset no retorno dos registros no método lista().
-     *
-     * @var int
-     */
-    public $_limite_offset;
-
-    /**
-     * Define o campo para ser usado como padrão de ordenação no método lista().
-     *
-     * @var string
-     */
-    public $_campo_order_by;
+    public $exigir_laudo_medico;
 
     /**
      * Construtor.
      */
-    public function __construct($cod_deficiencia = null, $nm_deficiencia = null, $deficiencia_educacenso = null, $desconsidera_regra_diferenciada = null)
+    public function __construct($cod_deficiencia = null, $nm_deficiencia = null, $deficiencia_educacenso = null, $desconsidera_regra_diferenciada = null, $exigir_laudo_medico = null)
     {
         $db = new clsBanco();
         $this->_schema = 'cadastro.';
         $this->_tabela = "{$this->_schema}deficiencia";
 
-        $this->_campos_lista = $this->_todos_campos = 'cod_deficiencia, nm_deficiencia, deficiencia_educacenso, desconsidera_regra_diferenciada ';
+        $this->_campos_lista = $this->_todos_campos = 'cod_deficiencia, nm_deficiencia, deficiencia_educacenso, desconsidera_regra_diferenciada, exigir_laudo_medico ';
 
         if (is_numeric($cod_deficiencia)) {
             $this->cod_deficiencia = $cod_deficiencia;
@@ -89,6 +35,10 @@ class clsCadastroDeficiencia
 
         if (is_bool($desconsidera_regra_diferenciada)) {
             $this->desconsidera_regra_diferenciada = $desconsidera_regra_diferenciada;
+        }
+
+        if (is_bool($exigir_laudo_medico)) {
+            $this->exigir_laudo_medico = $exigir_laudo_medico;
         }
     }
 
@@ -131,6 +81,13 @@ class clsCadastroDeficiencia
                 $gruda = ', ';
             }
 
+            if (is_bool($this->exigir_laudo_medico)) {
+                $exigir_laudo_medico = $this->exigir_laudo_medico ? 'true' : 'false';
+                $campos .= "{$gruda}exigir_laudo_medico";
+                $valores .= "{$gruda}'{$exigir_laudo_medico}'";
+                $gruda = ', ';
+            }
+
             $db->Consulta("INSERT INTO {$this->_tabela} ( $campos ) VALUES( $valores )");
 
             return $db->InsertId("{$this->_tabela}_cod_deficiencia_seq");
@@ -163,6 +120,12 @@ class clsCadastroDeficiencia
             if (is_bool($this->desconsidera_regra_diferenciada)) {
                 $desconsidera_regra_diferenciada = $this->desconsidera_regra_diferenciada ? 'true' : 'false';
                 $set .= "{$gruda}desconsidera_regra_diferenciada = '{$desconsidera_regra_diferenciada}'";
+                $gruda = ', ';
+            }
+
+            if (is_bool($this->exigir_laudo_medico)) {
+                $exigir_laudo_medico = $this->exigir_laudo_medico ? 'true' : 'false';
+                $set .= "{$gruda}exigir_laudo_medico = '{$exigir_laudo_medico}'";
                 $gruda = ', ';
             }
 
@@ -270,75 +233,5 @@ class clsCadastroDeficiencia
         $db->Consulta("  DELETE FROM cadastro.fisica_deficiencia WHERE ref_cod_deficiencia = {$deficienciaId};");
 
         return true;
-    }
-
-    /**
-     * Define quais campos da tabela serão selecionados no método Lista().
-     */
-    public function setCamposLista($str_campos)
-    {
-        $this->_campos_lista = $str_campos;
-    }
-
-    /**
-     * Define que o método Lista() deverpa retornar todos os campos da tabela.
-     */
-    public function resetCamposLista()
-    {
-        $this->_campos_lista = $this->_todos_campos;
-    }
-
-    /**
-     * Define limites de retorno para o método Lista().
-     */
-    public function setLimite($intLimiteQtd, $intLimiteOffset = null)
-    {
-        $this->_limite_quantidade = $intLimiteQtd;
-        $this->_limite_offset = $intLimiteOffset;
-    }
-
-    /**
-     * Retorna a string com o trecho da query responsável pelo limite de
-     * registros retornados/afetados.
-     *
-     * @return string
-     */
-    public function getLimite()
-    {
-        if (is_numeric($this->_limite_quantidade)) {
-            $retorno = " LIMIT {$this->_limite_quantidade}";
-            if (is_numeric($this->_limite_offset)) {
-                $retorno .= " OFFSET {$this->_limite_offset} ";
-            }
-
-            return $retorno;
-        }
-
-        return '';
-    }
-
-    /**
-     * Define o campo para ser utilizado como ordenação no método Lista().
-     */
-    public function setOrderby($strNomeCampo)
-    {
-        if (is_string($strNomeCampo) && $strNomeCampo) {
-            $this->_campo_order_by = $strNomeCampo;
-        }
-    }
-
-    /**
-     * Retorna a string com o trecho da query responsável pela Ordenação dos
-     * registros.
-     *
-     * @return string
-     */
-    public function getOrderby()
-    {
-        if (is_string($this->_campo_order_by)) {
-            return " ORDER BY {$this->_campo_order_by} ";
-        }
-
-        return '';
     }
 }

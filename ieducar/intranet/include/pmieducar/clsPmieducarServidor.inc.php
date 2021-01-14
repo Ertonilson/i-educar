@@ -1,8 +1,10 @@
 <?php
 
+use iEducar\Legacy\Model;
+
 require_once 'include/pmieducar/geral.inc.php';
 
-class clsPmieducarServidor
+class clsPmieducarServidor extends Model
 {
     public $cod_servidor;
     public $ref_idesco = false;
@@ -12,92 +14,13 @@ class clsPmieducarServidor
     public $ativo;
     public $ref_cod_instituicao;
     public $ref_cod_subnivel;
-    public $situacao_curso_superior_1;
-    public $formacao_complementacao_pedagogica_1;
-    public $codigo_curso_superior_1;
-    public $ano_inicio_curso_superior_1;
-    public $ano_conclusao_curso_superior_1;
-    public $instituicao_curso_superior_1;
-    public $situacao_curso_superior_2;
-    public $formacao_complementacao_pedagogica_2;
-    public $codigo_curso_superior_2;
-    public $ano_inicio_curso_superior_2;
-    public $ano_conclusao_curso_superior_2;
-    public $instituicao_curso_superior_2;
-    public $situacao_curso_superior_3;
-    public $formacao_complementacao_pedagogica_3;
-    public $codigo_curso_superior_3;
-    public $ano_inicio_curso_superior_3;
-    public $ano_conclusao_curso_superior_3;
-    public $instituicao_curso_superior_3;
     public $pos_graduacao;
     public $curso_formacao_continuada;
     public $multi_seriado;
     public $tipo_ensino_medio_cursado;
-
-    /**
-     * Armazena o total de resultados obtidos na última chamada ao método lista().
-     *
-     * @var int
-     */
-    public $_total;
-
-    /**
-     * Nome do schema.
-     *
-     * @var string
-     */
-    public $_schema;
-
-    /**
-     * Nome da tabela.
-     *
-     * @var string
-     */
-    public $_tabela;
-
-    /**
-     * Lista separada por vírgula, com os campos que devem ser selecionados na
-     * próxima chamado ao método lista().
-     *
-     * @var string
-     */
-    public $_campos_lista;
     public $_campos_lista2;
-
-    /**
-     * Lista com todos os campos da tabela separados por vírgula, padrão para
-     * seleção no método lista.
-     *
-     * @var string
-     */
-    public $_todos_campos;
     public $_todos_campos2;
 
-    /**
-     * Valor que define a quantidade de registros a ser retornada pelo método lista().
-     *
-     * @var int
-     */
-    public $_limite_quantidade;
-
-    /**
-     * Define o valor de offset no retorno dos registros no método lista().
-     *
-     * @var int
-     */
-    public $_limite_offset;
-
-    /**
-     * Define o campo para ser usado como padrão de ordenação no método lista().
-     *
-     * @var string
-     */
-    public $_campo_order_by;
-
-    /**
-     * Construtor.
-     */
     public function __construct(
         $cod_servidor = null,
         $ref_cod_deficiencia = null,
@@ -113,15 +36,9 @@ class clsPmieducarServidor
         $this->_schema = 'pmieducar.';
         $this->_tabela = $this->_schema . 'servidor';
         $this->_campos_lista = $this->_todos_campos = 'cod_servidor, ref_idesco, carga_horaria, data_cadastro, data_exclusao, ativo, ref_cod_instituicao,ref_cod_subnivel,
-    situacao_curso_superior_1, formacao_complementacao_pedagogica_1, codigo_curso_superior_1, ano_inicio_curso_superior_1, ano_conclusao_curso_superior_1, instituicao_curso_superior_1,
-    situacao_curso_superior_2, formacao_complementacao_pedagogica_2, codigo_curso_superior_2, ano_inicio_curso_superior_2, ano_conclusao_curso_superior_2, instituicao_curso_superior_2,
-    situacao_curso_superior_3, formacao_complementacao_pedagogica_3, codigo_curso_superior_3, ano_inicio_curso_superior_3, ano_conclusao_curso_superior_3, instituicao_curso_superior_3,
     pos_graduacao, curso_formacao_continuada, multi_seriado, tipo_ensino_medio_cursado
     ';
         $this->_campos_lista2 = $this->_todos_campos2 = 's.cod_servidor, s.ref_idesco, s.carga_horaria, s.data_cadastro, s.data_exclusao, s.ativo, s.ref_cod_instituicao,s.ref_cod_subnivel,
-    s.situacao_curso_superior_1, s.formacao_complementacao_pedagogica_1, s.codigo_curso_superior_1, s.ano_inicio_curso_superior_1, s.ano_conclusao_curso_superior_1, s.instituicao_curso_superior_1,
-    s.situacao_curso_superior_2, s.formacao_complementacao_pedagogica_2, s.codigo_curso_superior_2, s.ano_inicio_curso_superior_2, s.ano_conclusao_curso_superior_2, s.instituicao_curso_superior_2,
-    s.situacao_curso_superior_3, s.formacao_complementacao_pedagogica_3, s.codigo_curso_superior_3, s.ano_inicio_curso_superior_3, s.ano_conclusao_curso_superior_3, s.instituicao_curso_superior_3,
     s.pos_graduacao, s.curso_formacao_continuada, s.multi_seriado, s.tipo_ensino_medio_cursado,
     (SELECT replace(textcat_all(matricula),\' <br>\',\',\')
           FROM pmieducar.servidor_funcao sf
@@ -133,20 +50,7 @@ class clsPmieducarServidor
          * Filtrar cod_servidor
          */
         if (is_numeric($cod_servidor)) {
-            if (class_exists('clsFuncionario')) {
-                $tmp_obj = new clsFuncionario($cod_servidor);
-                if (method_exists($tmp_obj, 'existe')) {
-                    if ($tmp_obj->existe()) {
-                        $this->cod_servidor = $cod_servidor;
-                    }
-                } elseif (method_exists($tmp_obj, 'detalhe')) {
-                    // if ($tmp_obj->detalhe()) {
-                    $this->cod_servidor = $cod_servidor;
-                    // }
-                }
-            } elseif ($db->CampoUnico("SELECT 1 FROM funcionario WHERE ref_cod_pessoa_fj = '{$cod_servidor}'")) {
-                $this->cod_servidor = $cod_servidor;
-            }
+            $this->cod_servidor = $cod_servidor;
         }
         if (is_numeric($carga_horaria)) {
             $this->carga_horaria = $carga_horaria;
@@ -161,38 +65,10 @@ class clsPmieducarServidor
             $this->ativo = $ativo;
         }
         if (is_numeric($ref_cod_instituicao)) {
-            if (class_exists('clsPmieducarInstituicao')) {
-                $tmp_obj = new clsPmieducarInstituicao($ref_cod_instituicao);
-                if (method_exists($tmp_obj, 'existe')) {
-                    if ($tmp_obj->existe()) {
-                        $this->ref_cod_instituicao = $ref_cod_instituicao;
-                    }
-                } elseif (method_exists($tmp_obj, 'detalhe')) {
-                    if ($tmp_obj->detalhe()) {
-                        $this->ref_cod_instituicao = $ref_cod_instituicao;
-                    }
-                }
-            } elseif ($db->CampoUnico("SELECT 1 FROM pmieducar.instituicao WHERE cod_instituicao = '{$ref_cod_instituicao}'")) {
-                $this->ref_cod_instituicao = $ref_cod_instituicao;
-            }
+            $this->ref_cod_instituicao = $ref_cod_instituicao;
         }
         if (is_numeric($ref_cod_subnivel)) {
-            if (class_exists('clsPmieducarSubnivel')) {
-                $tmp_obj = new clsPmieducarSubnivel($ref_cod_subnivel);
-                if (method_exists($tmp_obj, 'existe')) {
-                    if ($tmp_obj->existe()) {
-                        $this->ref_cod_subnivel = $ref_cod_subnivel;
-                    }
-                } else {
-                    if (method_exists($tmp_obj, 'detalhe')) {
-                        if ($tmp_obj->detalhe()) {
-                            $this->ref_cod_subnivel = $ref_cod_subnivel;
-                        }
-                    }
-                }
-            } elseif ($db->CampoUnico("SELECT 1 FROM pmieducar.subnivel WHERE cod_subnivel = '{$ref_cod_subnivel}'")) {
-                $this->ref_cod_subnivel = $ref_cod_subnivel;
-            }
+            $this->ref_cod_subnivel = $ref_cod_subnivel;
         }
     }
 
@@ -225,6 +101,11 @@ class clsPmieducarServidor
                 $valores .= "{$gruda}'{$this->ref_cod_subnivel}'";
                 $gruda = ', ';
             }
+            if (is_numeric($this->ref_idesco)) {
+                $campos .= "{$gruda}ref_idesco";
+                $valores .= "{$gruda}'{$this->ref_idesco}'";
+                $gruda = ', ';
+            }
             $campos .= "{$gruda}data_cadastro";
             $valores .= "{$gruda}NOW()";
             $gruda = ', ';
@@ -234,96 +115,6 @@ class clsPmieducarServidor
             if (is_numeric($this->ref_cod_instituicao)) {
                 $campos .= "{$gruda}ref_cod_instituicao";
                 $valores .= "{$gruda}'{$this->ref_cod_instituicao}'";
-                $gruda = ', ';
-            }
-            if (is_numeric($this->situacao_curso_superior_1)) {
-                $campos .= "{$gruda}situacao_curso_superior_1";
-                $valores .= "{$gruda}'{$this->situacao_curso_superior_1}'";
-                $gruda = ', ';
-            }
-            if (is_numeric($this->formacao_complementacao_pedagogica_1)) {
-                $campos .= "{$gruda}formacao_complementacao_pedagogica_1";
-                $valores .= "{$gruda}'{$this->formacao_complementacao_pedagogica_1}'";
-                $gruda = ', ';
-            }
-            if (is_numeric($this->codigo_curso_superior_1)) {
-                $campos .= "{$gruda}codigo_curso_superior_1";
-                $valores .= "{$gruda}'{$this->codigo_curso_superior_1}'";
-                $gruda = ', ';
-            }
-            if (is_numeric($this->ano_inicio_curso_superior_1)) {
-                $campos .= "{$gruda}ano_inicio_curso_superior_1";
-                $valores .= "{$gruda}'{$this->ano_inicio_curso_superior_1}'";
-                $gruda = ', ';
-            }
-            if (is_numeric($this->ano_conclusao_curso_superior_1)) {
-                $campos .= "{$gruda}ano_conclusao_curso_superior_1";
-                $valores .= "{$gruda}'{$this->ano_conclusao_curso_superior_1}'";
-                $gruda = ', ';
-            }
-            if (is_numeric($this->instituicao_curso_superior_1)) {
-                $campos .= "{$gruda}instituicao_curso_superior_1";
-                $valores .= "{$gruda}'{$this->instituicao_curso_superior_1}'";
-                $gruda = ', ';
-            }
-            if (is_numeric($this->situacao_curso_superior_2)) {
-                $campos .= "{$gruda}situacao_curso_superior_2";
-                $valores .= "{$gruda}'{$this->situacao_curso_superior_2}'";
-                $gruda = ', ';
-            }
-            if (is_numeric($this->formacao_complementacao_pedagogica_2)) {
-                $campos .= "{$gruda}formacao_complementacao_pedagogica_2";
-                $valores .= "{$gruda}'{$this->formacao_complementacao_pedagogica_2}'";
-                $gruda = ', ';
-            }
-            if (is_numeric($this->codigo_curso_superior_2)) {
-                $campos .= "{$gruda}codigo_curso_superior_2";
-                $valores .= "{$gruda}'{$this->codigo_curso_superior_2}'";
-                $gruda = ', ';
-            }
-            if (is_numeric($this->ano_inicio_curso_superior_2)) {
-                $campos .= "{$gruda}ano_inicio_curso_superior_2";
-                $valores .= "{$gruda}'{$this->ano_inicio_curso_superior_2}'";
-                $gruda = ', ';
-            }
-            if (is_numeric($this->ano_conclusao_curso_superior_2)) {
-                $campos .= "{$gruda}ano_conclusao_curso_superior_2";
-                $valores .= "{$gruda}'{$this->ano_conclusao_curso_superior_2}'";
-                $gruda = ', ';
-            }
-            if (is_numeric($this->instituicao_curso_superior_2)) {
-                $campos .= "{$gruda}instituicao_curso_superior_2";
-                $valores .= "{$gruda}'{$this->instituicao_curso_superior_2}'";
-                $gruda = ', ';
-            }
-            if (is_numeric($this->situacao_curso_superior_3)) {
-                $campos .= "{$gruda}situacao_curso_superior_3";
-                $valores .= "{$gruda}'{$this->situacao_curso_superior_3}'";
-                $gruda = ', ';
-            }
-            if (is_numeric($this->formacao_complementacao_pedagogica_3)) {
-                $campos .= "{$gruda}formacao_complementacao_pedagogica_3";
-                $valores .= "{$gruda}'{$this->formacao_complementacao_pedagogica_3}'";
-                $gruda = ', ';
-            }
-            if (is_numeric($this->codigo_curso_superior_3)) {
-                $campos .= "{$gruda}codigo_curso_superior_3";
-                $valores .= "{$gruda}'{$this->codigo_curso_superior_3}'";
-                $gruda = ', ';
-            }
-            if (is_numeric($this->ano_inicio_curso_superior_3)) {
-                $campos .= "{$gruda}ano_inicio_curso_superior_3";
-                $valores .= "{$gruda}'{$this->ano_inicio_curso_superior_3}'";
-                $gruda = ', ';
-            }
-            if (is_numeric($this->ano_conclusao_curso_superior_3)) {
-                $campos .= "{$gruda}ano_conclusao_curso_superior_3";
-                $valores .= "{$gruda}'{$this->ano_conclusao_curso_superior_3}'";
-                $gruda = ', ';
-            }
-            if (is_numeric($this->instituicao_curso_superior_3)) {
-                $campos .= "{$gruda}instituicao_curso_superior_3";
-                $valores .= "{$gruda}'{$this->instituicao_curso_superior_3}'";
                 $gruda = ', ';
             }
             if (is_numeric($this->tipo_ensino_medio_cursado)) {
@@ -394,123 +185,6 @@ class clsPmieducarServidor
             }
             if (is_numeric($this->ref_cod_subnivel)) {
                 $set .= "{$gruda}ref_cod_subnivel = '{$this->ref_cod_subnivel}'";
-                $gruda = ', ';
-            }
-            if (is_numeric($this->situacao_curso_superior_1)) {
-                $set .= "{$gruda}situacao_curso_superior_1 = '{$this->situacao_curso_superior_1}'";
-                $gruda = ', ';
-            } else {
-                $set .= "{$gruda}situacao_curso_superior_1 = NULL";
-                $gruda = ', ';
-            }
-            if (is_numeric($this->formacao_complementacao_pedagogica_1)) {
-                $set .= "{$gruda}formacao_complementacao_pedagogica_1 = '{$this->formacao_complementacao_pedagogica_1}'";
-                $gruda = ', ';
-            }
-            if (is_numeric($this->codigo_curso_superior_1)) {
-                $set .= "{$gruda}codigo_curso_superior_1 = '{$this->codigo_curso_superior_1}'";
-                $gruda = ', ';
-            } else {
-                $set .= "{$gruda}codigo_curso_superior_1 = NULL";
-                $gruda = ', ';
-            }
-            if (is_numeric($this->ano_inicio_curso_superior_1)) {
-                $set .= "{$gruda}ano_inicio_curso_superior_1 = '{$this->ano_inicio_curso_superior_1}'";
-                $gruda = ', ';
-            } else {
-                $set .= "{$gruda}ano_inicio_curso_superior_1 = NULL";
-                $gruda = ', ';
-            }
-            if (is_numeric($this->ano_conclusao_curso_superior_1)) {
-                $set .= "{$gruda}ano_conclusao_curso_superior_1 = '{$this->ano_conclusao_curso_superior_1}'";
-                $gruda = ', ';
-            } else {
-                $set .= "{$gruda}ano_conclusao_curso_superior_1 = NULL";
-                $gruda = ', ';
-            }
-            if (is_numeric($this->instituicao_curso_superior_1)) {
-                $set .= "{$gruda}instituicao_curso_superior_1 = '{$this->instituicao_curso_superior_1}'";
-                $gruda = ', ';
-            } else {
-                $set .= "{$gruda}instituicao_curso_superior_1 = NULL";
-                $gruda = ', ';
-            }
-            if (is_numeric($this->situacao_curso_superior_2)) {
-                $set .= "{$gruda}situacao_curso_superior_2 = '{$this->situacao_curso_superior_2}'";
-                $gruda = ', ';
-            } else {
-                $set .= "{$gruda}situacao_curso_superior_2 = NULL";
-                $gruda = ', ';
-            }
-            if (is_numeric($this->formacao_complementacao_pedagogica_2)) {
-                $set .= "{$gruda}formacao_complementacao_pedagogica_2 = '{$this->formacao_complementacao_pedagogica_2}'";
-                $gruda = ', ';
-            }
-            if (is_numeric($this->codigo_curso_superior_2)) {
-                $set .= "{$gruda}codigo_curso_superior_2 = '{$this->codigo_curso_superior_2}'";
-                $gruda = ', ';
-            } else {
-                $set .= "{$gruda}codigo_curso_superior_2 = NULL";
-                $gruda = ', ';
-            }
-            if (is_numeric($this->ano_inicio_curso_superior_2)) {
-                $set .= "{$gruda}ano_inicio_curso_superior_2 = '{$this->ano_inicio_curso_superior_2}'";
-                $gruda = ', ';
-            } else {
-                $set .= "{$gruda}ano_inicio_curso_superior_2 = NULL";
-                $gruda = ', ';
-            }
-            if (is_numeric($this->ano_conclusao_curso_superior_2)) {
-                $set .= "{$gruda}ano_conclusao_curso_superior_2 = '{$this->ano_conclusao_curso_superior_2}'";
-                $gruda = ', ';
-            } else {
-                $set .= "{$gruda}ano_conclusao_curso_superior_2 = NULL";
-                $gruda = ', ';
-            }
-            if (is_numeric($this->instituicao_curso_superior_2)) {
-                $set .= "{$gruda}instituicao_curso_superior_2 = '{$this->instituicao_curso_superior_2}'";
-                $gruda = ', ';
-            } else {
-                $set .= "{$gruda}instituicao_curso_superior_2 = NULL";
-                $gruda = ', ';
-            }
-            if (is_numeric($this->situacao_curso_superior_3)) {
-                $set .= "{$gruda}situacao_curso_superior_3 = '{$this->situacao_curso_superior_3}'";
-                $gruda = ', ';
-            } else {
-                $set .= "{$gruda}situacao_curso_superior_3 = NULL";
-                $gruda = ', ';
-            }
-            if (is_numeric($this->formacao_complementacao_pedagogica_3)) {
-                $set .= "{$gruda}formacao_complementacao_pedagogica_3 = '{$this->formacao_complementacao_pedagogica_3}'";
-                $gruda = ', ';
-            }
-            if (is_numeric($this->codigo_curso_superior_3)) {
-                $set .= "{$gruda}codigo_curso_superior_3 = '{$this->codigo_curso_superior_3}'";
-                $gruda = ', ';
-            } else {
-                $set .= "{$gruda}codigo_curso_superior_3 = NULL";
-                $gruda = ', ';
-            }
-            if (is_numeric($this->ano_inicio_curso_superior_3)) {
-                $set .= "{$gruda}ano_inicio_curso_superior_3 = '{$this->ano_inicio_curso_superior_3}'";
-                $gruda = ', ';
-            } else {
-                $set .= "{$gruda}ano_inicio_curso_superior_3 = NULL";
-                $gruda = ', ';
-            }
-            if (is_numeric($this->ano_conclusao_curso_superior_3)) {
-                $set .= "{$gruda}ano_conclusao_curso_superior_3 = '{$this->ano_conclusao_curso_superior_3}'";
-                $gruda = ', ';
-            } else {
-                $set .= "{$gruda}ano_conclusao_curso_superior_3 = NULL";
-                $gruda = ', ';
-            }
-            if (is_numeric($this->instituicao_curso_superior_3)) {
-                $set .= "{$gruda}instituicao_curso_superior_3 = '{$this->instituicao_curso_superior_3}'";
-                $gruda = ', ';
-            } else {
-                $set .= "{$gruda}instituicao_curso_superior_3 = NULL";
                 $gruda = ', ';
             }
             if (is_numeric($this->tipo_ensino_medio_cursado)) {
@@ -736,6 +410,7 @@ class clsPmieducarServidor
             $this->_campos_lista2 = $this->_todos_campos2;
             $this->setOrderby(' 1 ');
         }
+        $db = new clsBanco();
         $sql = "SELECT {$this->_campos_lista2} FROM {$this->_schema}servidor s{$tabela_compl}";
         if (is_numeric($int_cod_servidor)) {
             $filtros .= "{$whereAnd} s.cod_servidor = '{$int_cod_servidor}'";
@@ -785,10 +460,8 @@ class clsPmieducarServidor
 
         // Busca tipo LIKE pelo nome do servidor
         if (is_string($str_nome_servidor)) {
-            $filtros .= "{$whereAnd} EXISTS (SELECT 1
-  FROM cadastro.pessoa p
-  WHERE cod_servidor = p.idpes
-  AND translate(upper(p.nome),'ÅÁÀÃÂÄÉÈÊËÍÌÎÏÓÒÕÔÖÚÙÛÜÇÝÑ','AAAAAAEEEEIIIIOOOOOUUUUCYN') LIKE translate(upper('%{$str_nome_servidor}%'),'ÅÁÀÃÂÄÉÈÊËÍÌÎÏÓÒÕÔÖÚÙÛÜÇÝÑ','AAAAAAEEEEIIIIOOOOOUUUUCYN'))";
+            $nome_servidor = $db->escapeString($str_nome_servidor);
+            $filtros .= "{$whereAnd} EXISTS (SELECT 1 FROM cadastro.pessoa WHERE idpes = cod_servidor and unaccent(nome) ILIKE unaccent('%{$nome_servidor}%'))";
             $whereAnd = ' AND ';
         }
         // Seleciona apenas servidores que tenham a carga atual maior ou igual ao
@@ -849,8 +522,8 @@ class clsPmieducarServidor
                 $cond = 'AND';
                 $hora_ini = explode(':', $array_horario[1]);
                 $hora_fim = explode(':', $array_horario[2]);
-                $horas = sprintf('%02d', (int)abs($hora_fim[0]) - abs($hora_ini[0]));
-                $minutos = sprintf('%02d', (int)abs($hora_fim[1]) - abs($hora_ini[1]));
+                $horas = sprintf('%02d', (int) abs($hora_fim[0]) - abs($hora_ini[0]));
+                $minutos = sprintf('%02d', (int) abs($hora_fim[1]) - abs($hora_ini[1]));
                 // Remove qualquer AND que esteja no início da cláusula SQL
                 $wherePieces = explode(' ', trim($where));
                 if ('AND' == $wherePieces[0]) {
@@ -923,6 +596,17 @@ class clsPmieducarServidor
                   AND qhh.hora_inicial <= '18:00'
                   AND qhh.dia_semana <> '$int_dia_semana'
                   AND qhh.ref_servidor = a.ref_cod_servidor
+                  AND quadro_horario.ano = $ano_alocacao
+                  AND qhh.sequencial = (
+                    SELECT s_qhh.sequencial
+                    FROM pmieducar.quadro_horario_horarios s_qhh
+                    WHERE s_qhh.dia_semana = qhh.dia_semana
+                    AND s_qhh.hora_inicial = qhh.hora_inicial
+                    AND s_qhh.ref_cod_quadro_horario = quadro_horario.cod_quadro_horario
+                    AND s_qhh.hora_final = qhh.hora_final
+                    ORDER BY s_qhh.sequencial DESC
+                    LIMIT 1
+                  )
                   GROUP BY qhh.ref_servidor ),'00:00') + '$str_hr_ves' +  COALESCE(
                   (SELECT SUM( qhha.hora_final - qhha.hora_inicial )
                     FROM pmieducar.quadro_horario_horarios_aux qhha
@@ -935,6 +619,7 @@ class clsPmieducarServidor
                     AND qhha.ref_servidor = a.ref_cod_servidor
                     AND qhha.hora_inicial >= '12:00'
                     AND qhha.hora_inicial <= '18:00'
+                    AND quadro_horario.ano = $ano_alocacao
                     AND identificador = '$int_identificador'
                     GROUP BY qhha.ref_servidor),'00:00') ) OR s.multi_seriado ) ";
                     } else {
@@ -1090,7 +775,6 @@ class clsPmieducarServidor
         }
         $countCampos = count(explode(',', $this->_campos_lista));
         $resultado = [];
-        $db = new clsBanco();
         $sql = "SELECT distinct {$this->_campos_lista2} FROM {$this->_schema}servidor s{$tabela_compl} {$filtros}" . $this->getOrderby() . $this->getLimite();
 
         $this->_total = $db->CampoUnico("SELECT distinct COUNT(0) FROM {$this->_schema}servidor s{$tabela_compl} {$filtros}");
@@ -1181,11 +865,11 @@ class clsPmieducarServidor
      * );
      * <code>
      *
-     * @since   Método disponível desde a versão 1.0.2
-     *
      * @return array Array associativo com a primeira chave sendo o código da
      *               função. O array interno contém o nome da função e se a função desempenha
      *               um papel de professor
+     * @since   Método disponível desde a versão 1.0.2
+     *
      */
     public function getServidorFuncoes()
     {
@@ -1212,8 +896,6 @@ class clsPmieducarServidor
      * Retorna um array com as disciplinas alocadas ao servidor no quadro de
      * horários
      *
-     * @since   Método disponível desde a versão 1.0.2
-     *
      * @param int $codServidor    Código do servidor, caso não seja informado,
      *                            usa o código disponível no objeto atual
      * @param int $codInstituicao Código da instituição, caso não seja
@@ -1221,6 +903,8 @@ class clsPmieducarServidor
      *
      * @return array|bool Array com códigos das disciplinas ordenados ou FALSE
      *                    caso o servidor não tenha disciplinas
+     * @since   Método disponível desde a versão 1.0.2
+     *
      */
     public function getServidorDisciplinasQuadroHorarioHorarios(
         $codServidor = null,
@@ -1251,14 +935,14 @@ class clsPmieducarServidor
      * Retorna um array com os códigos de servidor e instituição, usando os
      * valores dos parâmetros ou das propriedades da instância atual.
      *
-     * @since   Método disponível desde a versão 1.2.0
-     *
      * @param int $codServidor    Código do servidor, caso não seja informado,
      *                            usa o código disponível no objeto atual
      * @param int $codInstituicao Código da instituição, caso não seja
      *                            informado, usa o código disponível no objeto atual
      *
      * @return array|bool (codServidor => (int), codInstituicao => (int))
+     * @since   Método disponível desde a versão 1.2.0
+     *
      */
     public function _getCodServidorInstituicao($codServidor = null, $codInstituicao = null)
     {
@@ -1279,8 +963,6 @@ class clsPmieducarServidor
     /**
      * Retorna um array com os códigos das disciplinas do servidor
      *
-     * @since   Método disponível desde a versão 1.0.2
-     *
      * @param int $codServidor    Código do servidor, caso não seja informado,
      *                            usa o código disponível no objeto atual
      * @param int $codInstituicao Código da instituição, caso não seja
@@ -1288,6 +970,8 @@ class clsPmieducarServidor
      *
      * @return array|bool Array com códigos das disciplinas ordenados ou FALSE
      *                    caso o servidor não tenha disciplinas
+     * @since   Método disponível desde a versão 1.0.2
+     *
      */
     public function getServidorDisciplinas(
         $codServidor = null,
@@ -1324,8 +1008,6 @@ class clsPmieducarServidor
     /**
      * Retorna os horários de aula do servidor na instituição.
      *
-     * @since   Método disponível desde a versão 1.0.2
-     *
      * @param int $codServidor    Código do servidor, caso não seja informado,
      *                            usa o código disponível no objeto atual
      * @param int $codInstituicao Código da instituição, caso não seja
@@ -1334,6 +1016,8 @@ class clsPmieducarServidor
      * @return array|bool Array associativo com os índices nm_escola, nm_curso,
      *                    nm_serie, nm_turma, nome (componente curricular), dia_semana,
      *                    qhh.hora_inicial e hora_final.
+     * @since   Método disponível desde a versão 1.0.2
+     *
      */
     public function getHorariosServidor($codServidor = null, $codInstituicao = null)
     {
@@ -1395,9 +1079,9 @@ class clsPmieducarServidor
      * Primeiro, recuperamos todas as funções do servidor e procuramos
      * por um dos itens que tenha o índice professor igual a 1.
      *
+     * @return bool TRUE caso o servidor desempenhe a função de professor
      * @since   Método disponível desde a versão 1.0.2
      *
-     * @return bool TRUE caso o servidor desempenhe a função de professor
      */
     public function isProfessor()
     {
@@ -1410,76 +1094,6 @@ class clsPmieducarServidor
         }
 
         return false;
-    }
-
-    /**
-     * Define quais campos da tabela serão selecionados no método Lista().
-     */
-    public function setCamposLista($str_campos)
-    {
-        $this->_campos_lista = $str_campos;
-    }
-
-    /**
-     * Define que o método Lista() deverpa retornar todos os campos da tabela.
-     */
-    public function resetCamposLista()
-    {
-        $this->_campos_lista = $this->_todos_campos;
-    }
-
-    /**
-     * Define limites de retorno para o método Lista().
-     */
-    public function setLimite($intLimiteQtd, $intLimiteOffset = null)
-    {
-        $this->_limite_quantidade = $intLimiteQtd;
-        $this->_limite_offset = $intLimiteOffset;
-    }
-
-    /**
-     * Retorna a string com o trecho da query responsável pelo limite de
-     * registros retornados/afetados.
-     *
-     * @return string
-     */
-    public function getLimite()
-    {
-        if (is_numeric($this->_limite_quantidade)) {
-            $retorno = " LIMIT {$this->_limite_quantidade}";
-            if (is_numeric($this->_limite_offset)) {
-                $retorno .= " OFFSET {$this->_limite_offset} ";
-            }
-
-            return $retorno;
-        }
-
-        return '';
-    }
-
-    /**
-     * Define o campo para ser utilizado como ordenação no método Lista().
-     */
-    public function setOrderby($strNomeCampo)
-    {
-        if (is_string($strNomeCampo) && $strNomeCampo) {
-            $this->_campo_order_by = $strNomeCampo;
-        }
-    }
-
-    /**
-     * Retorna a string com o trecho da query responsável pela Ordenação dos
-     * registros.
-     *
-     * @return string
-     */
-    public function getOrderby()
-    {
-        if (is_string($this->_campo_order_by)) {
-            return " ORDER BY {$this->_campo_order_by} ";
-        }
-
-        return '';
     }
 
     /**

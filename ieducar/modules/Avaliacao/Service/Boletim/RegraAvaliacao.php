@@ -9,6 +9,20 @@ trait Avaliacao_Service_Boletim_RegraAvaliacao
      * @var RegraAvaliacao_Model_Regra
      */
     protected $_regra;
+    protected $_codigoDisciplinasAglutinadas;
+
+    public function codigoDisciplinasAglutinadas()
+    {
+        if (!isset($this->_codigoDisciplinasAglutinadas)) {
+            if (empty($this->getRegraAvaliacao()->disciplinasAglutinadas)) {
+                $this->_codigoDisciplinasAglutinadas = [];
+            } else {
+                $this->_codigoDisciplinasAglutinadas = explode(',', $this->getRegraAvaliacao()->disciplinasAglutinadas);
+            }
+        }
+
+        return $this->_codigoDisciplinasAglutinadas;
+    }
 
     /**
      * @return RegraAvaliacao_Model_Regra
@@ -255,5 +269,15 @@ trait Avaliacao_Service_Boletim_RegraAvaliacao
     public function hasRegraAvaliacaoAprovaMediaDisciplina()
     {
         return boolval($this->getRegraAvaliacao()->get('aprovaMediaDisciplina'));
+    }
+
+    /**
+     * Indica se a regra de avaliação usa a progressão do regime cíclico
+     *
+     * @return bool
+     */
+    public function isCyclicRegime()
+    {
+        return $this->getRegraAvaliacaoTipoProgressao() == RegraAvaliacao_Model_TipoProgressao::NAO_CONTINUADA_MANUAL_CICLO;
     }
 }

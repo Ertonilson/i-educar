@@ -1,5 +1,9 @@
 <?php
 
+use App\Models\City;
+use App\Models\Country;
+use App\Models\PersonHasPlace;
+use App\Services\UrlPresigner;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Session;
@@ -50,6 +54,7 @@ class indice extends clsDetalhe
     public $sus;
     public $url_laudo_medico;
     public $url_documento;
+    private $urlPresigner;
 
     public function Gerar()
     {
@@ -126,13 +131,12 @@ class indice extends clsDetalhe
             $registro['url'] = $det_pessoa_fj['url'];
 
             $registro['nacionalidade'] = $det_fisica['nacionalidade'];
-            $registro['nis_pis_pasep'] = $det_fisica['nis_pis_pasep'];
+            $registro['nis_pis_pasep'] = int2Nis($det_fisica['nis_pis_pasep']);
 
-            $registro['naturalidade'] = $det_fisica['idmun_nascimento']->detalhe();
-            $registro['naturalidade'] = $registro['naturalidade']['nome'];
+            $registro['naturalidade'] = City::getNameById($det_fisica['idmun_nascimento']);
 
-            $registro['pais_origem'] = $det_fisica['idpais_estrangeiro']->detalhe();
-            $registro['pais_origem'] = $registro['pais_origem']['nome'];
+            $countryName = Country::query()->find($det_fisica['idpais_estrangeiro']);
+            $registro['pais_origem'] = $countryName->name;
 
             $registro['ref_idpes_responsavel'] = $det_fisica['idpes_responsavel'];
 
@@ -252,73 +256,11 @@ class indice extends clsDetalhe
             $registro['secao_tit_eleitor'] = $detalheDocumento['secao_titulo_eleitor'] ?? null;
             $registro['idorg_exp_rg'] = $detalheDocumento['ref_idorg_rg'] ?? null;
 
-            $obj_endereco = new clsPessoaEndereco($this->ref_idpes);
-
-            if ($obj_endereco_det = $obj_endereco->detalhe()) {
-                $registro['id_cep'] = $obj_endereco_det['cep']->cep;
-                $registro['id_bairro'] = $obj_endereco_det['idbai'];
-                $registro['id_logradouro'] = $obj_endereco_det['idlog'];
-                $registro['numero'] = $obj_endereco_det['numero'];
-                $registro['letra'] = $obj_endereco_det['letra'];
-                $registro['complemento'] = $obj_endereco_det['complemento'];
-                $registro['andar'] = $obj_endereco_det['andar'];
-                $registro['apartamento'] = $obj_endereco_det['apartamento'];
-                $registro['bloco'] = $obj_endereco_det['bloco'];
-                $registro['nm_logradouro'] = $obj_endereco_det['logradouro'] ?? null;
-                $registro['cep_'] = int2CEP($registro['id_cep']);
-
-                $obj_bairro = new clsBairro($registro['id_bairro']);
-                $obj_bairro_det = $obj_bairro->detalhe();
-
-                if ($obj_bairro_det) {
-                    $registro['nm_bairro'] = $obj_bairro_det['nome'];
-                }
-
-                $obj_log = new clsLogradouro($registro['id_logradouro']);
-                $obj_log_det = $obj_log->detalhe();
-
-                if ($obj_log_det) {
-                    $registro['nm_logradouro'] = $obj_log_det['nome'];
-                    $registro['idtlog'] = $obj_log_det['idtlog']->detalhe();
-                    $registro['idtlog'] = $registro['idtlog']['descricao'];
-
-                    $obj_mun = new clsMunicipio($obj_log_det['idmun']);
-                    $det_mun = $obj_mun->detalhe();
-
-                    if ($det_mun) {
-                        $registro['cidade'] = ucfirst(strtolower($det_mun['nome']));
-                    }
-                }
-
-                $obj_bairro = new clsBairro($registro['id_bairro']);
-                $obj_bairro_det = $obj_bairro->detalhe();
-
-                if ($obj_bairro_det) {
-                    $registro['nm_bairro'] = $obj_bairro_det['nome'];
-                }
-            } else {
-                $obj_endereco = new clsEnderecoExterno($this->ref_idpes);
-
-                if ($obj_endereco_det = $obj_endereco->detalhe()) {
-                    $registro['id_cep'] = $obj_endereco_det['cep'];
-                    $registro['cidade'] = $obj_endereco_det['cidade'];
-                    $registro['nm_bairro'] = $obj_endereco_det['bairro'];
-                    $registro['nm_logradouro'] = $obj_endereco_det['logradouro'];
-                    $registro['numero'] = $obj_endereco_det['numero'];
-                    $registro['letra'] = $obj_endereco_det['letra'];
-                    $registro['complemento'] = $obj_endereco_det['complemento'];
-                    $registro['andar'] = $obj_endereco_det['andar'];
-                    $registro['apartamento'] = $obj_endereco_det['apartamento'];
-                    $registro['bloco'] = $obj_endereco_det['bloco'];
-                    $registro['idtlog'] = $obj_endereco_det['idtlog']->detalhe();
-                    $registro['idtlog'] = $registro['idtlog']['descricao'];
-
-                    $det_uf = $obj_endereco_det['sigla_uf']->detalhe();
-                    $registro['ref_sigla_uf'] = $det_uf['nome'] ?? null;
-
-                    $registro['cep_'] = int2CEP($registro['id_cep']);
-                }
-            }
+            $place = PersonHasPlace::query()
+                ->with('place.city.state')
+                ->where('person_id', $this->ref_idpes)
+                ->orderBy('type')
+                ->first();
         }
 
         if ($registro['cod_aluno']) {
@@ -349,16 +291,20 @@ class indice extends clsDetalhe
                 'Foto',
                 sprintf(
                     '<img src="arquivos/educar/aluno/small/%s" border="0">',
-                    $registro['caminho_foto']
+                    $this->urlPresigner()->getPresignedUrl($registro['caminho_foto'])
                 )
             ]);
         }
 
         if ($registro['nome_aluno']) {
             if ($caminhoFoto != null and $caminhoFoto != '') {
+                $url = $this->urlPresigner()->getPresignedUrl($caminhoFoto);
+
                 $this->addDetalhe([
                     'Nome Aluno',
-                    $registro['nome_aluno'] . '<p><img height="117" src="' . $caminhoFoto . '"/></p>'
+                    $registro['nome_aluno'] . '<p><img id="student-picture" height="117" src="' . $url . '"/></p>'
+                        . '<div><a class="rotate-picture" data-angle="90" href="javascript:void(0)"><i class="fa fa-rotate-left"></i> Girar para esquerda</a></div>'
+                        . '<div><a class="rotate-picture" data-angle="-90" href="javascript:void(0)"><i class="fa fa-rotate-right"></i> Girar para direita</a></div>'
                 ]);
             } else {
                 $this->addDetalhe(['Nome Aluno', $registro['nome_aluno']]);
@@ -368,7 +314,7 @@ class indice extends clsDetalhe
         if ($det_fisica['nome_social']) {
             $this->addDetalhe(['Nome Social', strtoupper($det_fisica['nome_social'])]);
         }
-        
+
         if (idFederal2int($registro['cpf'])) {
             $this->addDetalhe(['CPF', $registro['cpf']]);
         }
@@ -390,55 +336,16 @@ class indice extends clsDetalhe
             $this->addDetalhe(['Estado Civil', $registro['ideciv']]);
         }
 
-        if ($registro['id_cep']) {
-            $this->addDetalhe(['CEP', $registro['cep_']]);
-        }
+        if (isset($place)) {
+            $place = $place->place;
 
-        if (isset($registro['ref_sigla_uf']) && !empty($registro['ref_sigla_uf'])) {
-            $this->addDetalhe(['UF', $registro['ref_sigla_uf'] ?? null]);
-        }
-
-        if ($registro['cidade']) {
-            $this->addDetalhe(['Cidade', $registro['cidade']]);
-        }
-
-        if ($registro['nm_bairro']) {
-            $this->addDetalhe(['Bairro', $registro['nm_bairro']]);
-        }
-
-        if ($registro['nm_logradouro']) {
-            $logradouro = '';
-
-            if ($registro['idtlog']) {
-                $logradouro .= $registro['idtlog'] . ' ';
-            }
-
-            $logradouro .= $registro['nm_logradouro'];
-            $this->addDetalhe(['Logradouro', $logradouro]);
-        }
-
-        if ($registro['numero']) {
-            $this->addDetalhe(['Número', $registro['numero']]);
-        }
-
-        if ($registro['letra']) {
-            $this->addDetalhe(['Letra', $registro['letra']]);
-        }
-
-        if ($registro['complemento']) {
-            $this->addDetalhe(['Complemento', $registro['complemento']]);
-        }
-
-        if ($registro['bloco']) {
-            $this->addDetalhe(['Bloco', $registro['bloco']]);
-        }
-
-        if ($registro['andar']) {
-            $this->addDetalhe(['Andar', $registro['andar']]);
-        }
-
-        if ($registro['apartamento']) {
-            $this->addDetalhe(['Apartamento', $registro['apartamento']]);
+            $this->addDetalhe(['Logradouro', $place->address]);
+            $this->addDetalhe(['Número', $place->number]);
+            $this->addDetalhe(['Complemento', $place->complement]);
+            $this->addDetalhe(['Bairro', $place->neighborhood]);
+            $this->addDetalhe(['Cidade', $place->city->name]);
+            $this->addDetalhe(['UF', $place->city->state->abbreviation]);
+            $this->addDetalhe(['CEP', int2CEP($place->postal_code)]);
         }
 
         if ($registro['naturalidade']) {
@@ -586,7 +493,7 @@ class indice extends clsDetalhe
                 $tabela .= '<tr bgcolor=\'' . $cor . '\'
                         align=\'center\'>
                           <td>
-                            <a href=\'' . $documento->url . '\'
+                            <a href=\'' . $this->urlPresigner()->getPresignedUrl($documento->url) . '\'
                                target=\'_blank\' > Visualizar documento ' . (count($documento) > 1 ? ($key + 1) : '') . '
                             </a>
                           </td>
@@ -605,8 +512,8 @@ class indice extends clsDetalhe
             $arrayLaudoMedico = json_decode($registro['url_laudo_medico']);
             foreach ($arrayLaudoMedico as $key => $laudoMedico) {
                 $cor = $cor == '#D1DADF' ? '#f5f9fd' : '#D1DADF';
-
-                $tabela .= "<tr bgcolor='{$cor}' align='center'><td><a href='{$laudoMedico->url}' target='_blank' > Visualizar laudo " . (count($arrayLaudoMedico) > 1 ? ($key + 1) : '') . ' </a></td></tr>';
+                $laudoMedicoUrl = $this->urlPresigner()->getPresignedUrl($laudoMedico->url);
+                $tabela .= "<tr bgcolor='{$cor}' align='center'><td><a href='{$laudoMedicoUrl}' target='_blank' > Visualizar laudo " . (count($arrayLaudoMedico) > 1 ? ($key + 1) : '') . ' </a></td></tr>';
             }
 
             $tabela .= '</table>';
@@ -945,15 +852,18 @@ class indice extends clsDetalhe
             $this->addDetalhe(['Possui empregada doméstica', $reg['empregada_domestica']]);
             $this->addDetalhe(['Possui automóvel', $reg['automovel']]);
             $this->addDetalhe(['Possui motocicleta', $reg['motocicleta']]);
-            $this->addDetalhe(['Possui computador', $reg['computador']]);
             $this->addDetalhe(['Possui geladeira', $reg['geladeira']]);
             $this->addDetalhe(['Possui fogão', $reg['fogao']]);
             $this->addDetalhe(['Possui máquina de lavar', $reg['maquina_lavar']]);
             $this->addDetalhe(['Possui microondas', $reg['microondas']]);
             $this->addDetalhe(['Possui vídeo/dvd', $reg['video_dvd']]);
             $this->addDetalhe(['Possui televisão', $reg['televisao']]);
-            $this->addDetalhe(['Possui celular', $reg['celular']]);
             $this->addDetalhe(['Possui telefone', $reg['telefone']]);
+
+            $recursosTecnlogicos = json_decode($reg['recursos_tecnologicos']);
+            $recursosTecnlogicos = implode(", ", $recursosTecnlogicos);
+            $this->addDetalhe(['Possui acesso à recursos técnologicos?', $recursosTecnlogicos]);
+
             $this->addDetalhe(['Quantidade de pessoas', $reg['quant_pessoas']]);
             $this->addDetalhe(['Renda familiar', 'R$ ' . $reg['renda']]);
             $this->addDetalhe(['Possui água encanada', $reg['agua_encanada']]);
@@ -1024,9 +934,9 @@ class indice extends clsDetalhe
         $this->largura = '100%';
         $this->addDetalhe("<input type='hidden' id='escola_id' name='aluno_id' value='{$registro['ref_cod_escola']}' />");
         $this->addDetalhe("<input type='hidden' id='aluno_id' name='aluno_id' value='{$registro['cod_aluno']}' />");
-        $mostraDependencia = $GLOBALS['coreExt']['Config']->app->matricula->dependencia;
+        $mostraDependencia = config('legacy.app.matricula.dependencia');
         $this->addDetalhe("<input type='hidden' id='can_show_dependencia' name='can_show_dependencia' value='{$mostraDependencia}' />");
-        
+
         $this->breadcrumb('Aluno', ['/intranet/educar_index.php' => 'Escola']);
         // js
         $scripts = [
@@ -1040,6 +950,15 @@ class indice extends clsDetalhe
         $styles = ['/modules/Cadastro/Assets/Stylesheets/Aluno.css'];
 
         Portabilis_View_Helper_Application::loadStylesheet($this, $styles);
+    }
+
+    private function urlPresigner()
+    {
+        if (!isset($this->urlPresigner)) {
+            $this->urlPresigner = new UrlPresigner();
+        }
+
+        return $this->urlPresigner;
     }
 }
 

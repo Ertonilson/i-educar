@@ -2,7 +2,6 @@
 
 use Illuminate\Support\Facades\DB;
 
-require_once 'includes/bootstrap.php';
 require_once 'include/clsBancoPgSql.inc.php';
 
 class clsBanco extends clsBancoSQL_
@@ -96,5 +95,9 @@ class clsBanco extends clsBancoSQL_
     protected function _formatBool($val)
     {
         return ($val == true ? 't' : 'f');
+    }
+    public function escapeString($string)
+    {
+        return pg_escape_string($string);
     }
 }

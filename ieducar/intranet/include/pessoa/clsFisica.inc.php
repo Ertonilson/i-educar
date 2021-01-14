@@ -1,10 +1,13 @@
 <?php
 
+use App\Models\LegacyPerson;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Str;
 
 require_once 'include/clsBanco.inc.php';
 require_once 'include/Geral.inc.php';
 require_once 'include/modules/clsModulesAuditoriaGeral.inc.php';
+
 class clsFisica
 {
     public $idpes;
@@ -19,8 +22,13 @@ class clsFisica
     public $data_uniao;
     public $data_obito;
     public $nome_social;
+
     /**
-     * Nacionalidade 1 - Brasileiro 2 - Naturalizado Brasileiro 3 - Estrangeiro
+     * Nacionalidade:
+     *
+     *  1 - Brasileiro
+     *  2 - Naturalizado Brasileiro
+     *  3 - Estrangeiro
      *
      * @var $nacionalidade
      */
@@ -59,15 +67,9 @@ class clsFisica
     public $horario_final_trabalho;
     public $pais_residencia;
     public $localizacao_diferenciada;
-
     public $tabela;
     public $schema;
 
-    /**
-     * Construtor
-     *
-     * @return Object:clsFisica
-     */
     public function __construct(
         $idpes=false,
         $data_nasc=false,
@@ -145,18 +147,12 @@ class clsFisica
             $this->idpes_con = $idpes_con;
         }
         if (is_numeric($idpais_estrangeiro)) {
-            $objPais = new clsPais($idpais_estrangeiro);
-            if ($objPais->detalhe()) {
-                $this->idpais_estrangeiro = $idpais_estrangeiro;
-            }
+            $this->idpais_estrangeiro = $idpais_estrangeiro;
         } elseif ($idpais_estrangeiro == 'NULL') {
             $this->idpais_estrangeiro = $idpais_estrangeiro;
         }
         if (is_numeric($idmun_nascimento)) {
-            $objMunicipio = new clsMunicipio($idmun_nascimento);
-            if ($objMunicipio->detalhe()) {
-                $this->idmun_nascimento = $idmun_nascimento;
-            }
+            $this->idmun_nascimento = $idmun_nascimento;
         } elseif ($idmun_nascimento == 'NULL') {
             $this->idmun_nascimento = $idmun_nascimento;
         }
@@ -216,7 +212,7 @@ class clsFisica
     public function cadastra()
     {
         $db = new clsBanco();
-        // verificacoes de campos obrigatorios para insercao
+
         if (is_numeric($this->idpes) && is_numeric($this->idpes_cad)) {
             $campos = '';
             $valores = '';
@@ -345,13 +341,15 @@ class clsFisica
             }
 
             if (is_string($this->ocupacao)) {
+                $ocupacao = $db->escapeString($this->ocupacao);
                 $campos .=  ', ocupacao';
-                $valores .= ", '$this->ocupacao'";
+                $valores .= ", '{$ocupacao}'";
             }
 
             if (is_string($this->empresa)) {
+                $empresa = $db->escapeString($this->empresa);
                 $campos  .= ', empresa';
-                $valores .= ", '$this->empresa'";
+                $valores .= ", '{$empresa}'";
             }
 
             if (is_numeric($this->ddd_telefone_empresa)) {
@@ -365,8 +363,9 @@ class clsFisica
             }
 
             if (is_string($this->pessoa_contato)) {
+                $pessoa_contato = $db->escapeString($this->pessoa_contato);
                 $campos .=  ', pessoa_contato';
-                $valores .= ", '$this->pessoa_contato'";
+                $valores .= ", '{$pessoa_contato}'";
             }
 
             if (is_numeric($this->renda_mensal)) {
@@ -429,14 +428,24 @@ class clsFisica
             }
 
             if (is_string($this->nome_social) && !empty($this->nome_social)) {
+                $slug = Str::lower(Str::slug($this->nome_social, ' '));
+
+                $person = LegacyPerson::query()->find($this->idpes);
+                $person->slug = "{$slug} {$person->slug}";
+                $person->save();
+                $person = $db->escapeString($this->nome_social);
                 $campos  .= ', nome_social';
-                $valores .= ", '$this->nome_social'";
+                $valores .= ", '{$person}'";
             } else {
+                $person = LegacyPerson::query()->find($this->idpes);
+                $person->slug = Str::lower(Str::slug($person->nome, ' '));
+                $person->save();
+
                 $campos  .= ', nome_social';
                 $valores .= ', NULL';
             }
 
-            $db->Consulta("INSERT INTO {$this->schema}.{$this->tabela} (idpes, origem_gravacao, idsis_cad, data_cad, operacao, idpes_cad $campos) VALUES ( '{$this->idpes}', 'M', 17, NOW(), 'I', '$this->idpes_cad' $valores )");
+            $db->Consulta("INSERT INTO {$this->schema}.{$this->tabela} (idpes, origem_gravacao, data_cad, operacao, idpes_cad $campos) VALUES ( '{$this->idpes}', 'M', NOW(), 'I', '$this->idpes_cad' $valores )");
 
             if ($this->idpes) {
                 $detalhe = $this->detalheSimples();
@@ -691,8 +700,13 @@ class clsFisica
             }
 
             if (is_string($this->nome_social)) {
+                $slug = Str::lower(Str::slug($this->nome_social, ' '));
+
+                $person = LegacyPerson::query()->find($this->idpes);
+                $person->slug = "{$slug} {$person->slug}";
+                $person->save();
+
                 $set .= "$gruda nome_social = '{$this->nome_social}'";
-                $gruda = ', ';
             }
 
             if ($set) {
@@ -745,9 +759,8 @@ class clsFisica
      */
     public function lista($int_idpes=false, $data_data_nasc=false, $str_sexo=false, $int_idpes_mae=false, $int_idpes_pai=false, $int_idpes_responsavel=false, $int_idesco=false, $int_ideciv=false, $int_idpes_con=false, $data_data_uniao=false, $data_data_obito=false, $int_nacionalidade=false, $int_idpais_estrangeiro=false, $data_data_chagada_brasil=false, $int_idmun_nascimento=false, $str_ultima_empresa=false, $int_idocup=false, $str_nome_mae=false, $str_nome_pai=false, $str_nome_conjuge=false, $str_nome_responsavel=false, $str_justificativa_provisorio=false, $str_ordenacao=false, $int_limite_ini=0, $int_limite_qtd=20, $arrayint_idisin = false, $arrayint_idnotin = false, $str_data_nasc_ini = false, $str_data_nasc_fim = false, $int_mes_aniversario = false, $int_ref_cod_sistema = false, $int_cpf = false)
     {
-        // verificacoes de filtros a serem usados
-
         $whereAnd = 'WHERE ';
+
         if (is_numeric($int_idpes)) {
             $where .= "{$whereAnd}idpes = '$int_idpes'";
             $whereAnd = ' AND ';
@@ -943,8 +956,6 @@ class clsFisica
             $tupla = $db->Tupla();
             $tupla['idesco'] =  $tupla['idesco'];
             $tupla['ideciv'] = new clsEstadoCivil($tupla['ideciv']);
-            $tupla['idpais_estrangeiro'] = new clsPais($tupla['idpais_estrangeiro']);
-            $tupla['idmun_nascimento'] = new clsMunicipio($tupla['idmun_nascimento']);
             $tupla['idocup'] = new clsOcupacao($tupla['idocup']);
 
             $tupla['total'] = $total;
@@ -973,8 +984,6 @@ class clsFisica
 
                 $tupla['idesco'] = new clsEscolaridade($tupla['idesco']);
                 $tupla['ideciv'] = new clsEstadoCivil($tupla['ideciv']);
-                $tupla['idpais_estrangeiro'] = new clsPais($tupla['idpais_estrangeiro']);
-                $tupla['idmun_nascimento'] = new clsMunicipio($tupla['idmun_nascimento']);
                 $tupla['idocup'] = new clsOcupacao($tupla['idocup']);
 
                 return $tupla;
@@ -987,8 +996,6 @@ class clsFisica
 
                 $tupla['idesco'] = new clsEscolaridade($tupla['idesco']);
                 $tupla['ideciv'] = new clsEstadoCivil($tupla['ideciv']);
-                $tupla['idpais_estrangeiro'] = new clsPais($tupla['idpais_estrangeiro']);
-                $tupla['idmun_nascimento'] = new clsMunicipio($tupla['idmun_nascimento']);
                 $tupla['idocup'] = new clsOcupacao($tupla['idocup']);
 
                 return $tupla;

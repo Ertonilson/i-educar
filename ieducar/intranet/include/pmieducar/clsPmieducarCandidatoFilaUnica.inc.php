@@ -1,6 +1,8 @@
 <?php
 
-class clsPmieducarCandidatoFilaUnica
+use iEducar\Legacy\Model;
+
+class clsPmieducarCandidatoFilaUnica extends Model
 {
     public $cod_candidato_fila_unica;
     public $ref_cod_aluno;
@@ -24,32 +26,7 @@ class clsPmieducarCandidatoFilaUnica
     public $ativo;
     public $sexo;
     public $ideciv;
-
-    // propriedades padrao
-
-    // Armazena o total de resultados obtidos na ultima chamada ao metodo lista
-    public $_total;
-
-    // Nome do schema
-    public $_schema;
-
-    // Nome da tabela
-    public $_tabela;
-
-    // Lista separada por virgula, com os campos que devem ser selecionados na proxima chamado ao metodo lista
-    public $_campos_lista;
-
-    // Lista com todos os campos da tabela separados por virgula, padrao para selecao no metodo lista
-    public $_todos_campos;
-
-    // Valor que define a quantidade de registros a ser retornada pelo metodo lista
-    public $_limite_quantidade;
-
-    // Define o valor de offset no retorno dos registros no metodo lista
-    public $_limite_offset;
-
-    // Define o campo padrao para ser usado como padrao de ordenacao no metodo lista
-    public $_campo_order_by;
+    public $comments;
 
     public function __construct(
         $cod_candidato_fila_unica = null,
@@ -94,7 +71,8 @@ class clsPmieducarCandidatoFilaUnica
                                                        cfu.data_situacao,
                                                        cfu.via_judicial,
                                                        cfu.via_judicial_doc,
-                                                       cfu.ativo';
+                                                       cfu.ativo,
+                                                       cfu.comments';
 
         if (is_numeric($cod_candidato_fila_unica)) {
             $this->cod_candidato_fila_unica = $cod_candidato_fila_unica;
@@ -267,6 +245,12 @@ class clsPmieducarCandidatoFilaUnica
                 $gruda = ', ';
             }
 
+            if (is_string($this->comments)) {
+                $campos .= "{$gruda}comments";
+                $valores .= "{$gruda}'{$this->comments}'";
+                $gruda = ', ';
+            }
+
             $campos .= "{$gruda}ativo";
             $valores .= "{$gruda}'1'";
             $gruda = ', ';
@@ -377,6 +361,14 @@ class clsPmieducarCandidatoFilaUnica
                 $gruda = ', ';
             }
 
+            if (is_string($this->comments)) {
+                $set .= "{$gruda}comments = '{$this->comments}'";
+                $gruda = ', ';
+            } else {
+                $set .= "{$gruda}comments = NULL";
+                $gruda = ', ';
+            }
+
             if ($set) {
                 $db->Consulta("UPDATE {$this->_tabela} SET $set WHERE cod_candidato_fila_unica = {$this->cod_candidato_fila_unica}");
 
@@ -395,8 +387,20 @@ class clsPmieducarCandidatoFilaUnica
     public function lista(
         $nome = null,
         $nome_responsavel = null,
-        $ref_cod_escola = null
+        $ref_cod_escola = null,
+        $getEscolas = false
     ) {
+        $sqlEscolas = 'null';
+
+        if ($getEscolas) {
+            $sqlEscolas = " (SELECT string_agg(j.fantasia, ', ')
+                          FROM pmieducar.escola_candidato_fila_unica ecfu
+                    INNER JOIN pmieducar.escola e ON e.cod_escola = ecfu.ref_cod_escola
+                    INNER JOIN cadastro.juridica j ON j.idpes = e.ref_idpes
+                         WHERE ecfu.ref_cod_candidato_fila_unica = cfu.cod_candidato_fila_unica
+                      GROUP BY ecfu.ref_cod_candidato_fila_unica) AS escolas";
+        }
+
         $sql = "SELECT {$this->_campos_lista},
                        p.nome,
                        f.data_nasc,
@@ -409,31 +413,18 @@ class clsPmieducarCandidatoFilaUnica
                        f.sexo,
                        f.ideciv,
                        s.nm_serie,
-                       ep.observacoes,
+                       cfu.comments AS observacoes,
                        (cfu.ano_letivo || to_char(cfu.cod_candidato_fila_unica, 'fm00000000')) AS protocolo,
                        (CASE cfu.situacao
                         WHEN 'A' THEN 'Atendida'
                         WHEN 'I' THEN 'Indeferida'
                         WHEN 'D' THEN 'Desistente'
                         ELSE 'Em espera' END) AS situacao_desc,
-                       (SELECT (STRING_AGG(nome, ', '))
-                          FROM (SELECT p.nome
-                                  FROM pmieducar.responsaveis_aluno ra
-                                 INNER JOIN cadastro.pessoa p ON (p.idpes = ra.ref_idpes)
-                                 WHERE ref_cod_aluno = cfu.ref_cod_aluno
-                                 ORDER BY vinculo_familiar
-                                 LIMIT 3) r) AS responsaveis,
-                       (SELECT string_agg(j.fantasia, ', ')
-                          FROM pmieducar.escola_candidato_fila_unica ecfu
-                    INNER JOIN pmieducar.escola e ON e.cod_escola = ecfu.ref_cod_escola
-                    INNER JOIN cadastro.juridica j ON j.idpes = e.ref_idpes
-                         WHERE ecfu.ref_cod_candidato_fila_unica = cfu.cod_candidato_fila_unica
-                      GROUP BY ecfu.ref_cod_candidato_fila_unica) AS escolas
+                        {$sqlEscolas}
                   FROM {$this->_tabela} cfu
             INNER JOIN pmieducar.aluno a ON (a.cod_aluno = cfu.ref_cod_aluno)
             INNER JOIN cadastro.pessoa p ON (p.idpes = a.ref_idpes)
             INNER JOIN cadastro.fisica f ON (f.idpes = a.ref_idpes)
-            INNER JOIN cadastro.endereco_pessoa ep ON (ep.idpes = p.idpes)
             INNER JOIN pmieducar.serie s ON (s.cod_serie = cfu.ref_cod_serie)
              LEFT JOIN cadastro.documento d ON (d.idpes = a.ref_idpes)";
 
@@ -545,6 +536,7 @@ class clsPmieducarCandidatoFilaUnica
         }
 
         if (is_string($nome)) {
+            $nome = str_replace('\'', '\'\'', $nome);
             $filtros .= "{$whereAnd} upper(nome) LIKE upper('%{$nome}%')";
             $whereAnd = ' AND ';
         }
@@ -558,6 +550,7 @@ class clsPmieducarCandidatoFilaUnica
         }
 
         if (is_string($nome_responsavel)) {
+            $nome_responsavel = str_replace('\'', '\'\'', $nome_responsavel);
             $filtros .= "{$whereAnd} (SELECT upper(replace(textcat_all(nome),' <br>',','))
                                         FROM (SELECT p.nome
                                                 FROM pmieducar.responsaveis_aluno ra
@@ -724,83 +717,6 @@ class clsPmieducarCandidatoFilaUnica
         return false;
     }
 
-    /**
-     * Define quais campos da tabela serao selecionados na invocacao do metodo lista
-     *
-     * @return null
-     */
-    public function setCamposLista($str_campos)
-    {
-        $this->_campos_lista = $str_campos;
-    }
-
-    /**
-     * Define que o metodo Lista devera retornoar todos os campos da tabela
-     *
-     * @return null
-     */
-    public function resetCamposLista()
-    {
-        $this->_campos_lista = $this->_todos_campos;
-    }
-
-    /**
-     * Define limites de retorno para o metodo lista
-     *
-     * @return null
-     */
-    public function setLimite($intLimiteQtd, $intLimiteOffset = null)
-    {
-        $this->_limite_quantidade = $intLimiteQtd;
-        $this->_limite_offset = $intLimiteOffset;
-    }
-
-    /**
-     * Retorna a string com o trecho da query resposavel pelo Limite de registros
-     *
-     * @return string
-     */
-    public function getLimite()
-    {
-        if (is_numeric($this->_limite_quantidade)) {
-            $retorno = " LIMIT {$this->_limite_quantidade}";
-
-            if (is_numeric($this->_limite_offset)) {
-                $retorno .= " OFFSET {$this->_limite_offset} ";
-            }
-
-            return $retorno;
-        }
-
-        return '';
-    }
-
-    /**
-     * Define campo para ser utilizado como ordenacao no metolo lista
-     *
-     * @return null
-     */
-    public function setOrderby($strNomeCampo)
-    {
-        if (is_string($strNomeCampo) && $strNomeCampo) {
-            $this->_campo_order_by = $strNomeCampo;
-        }
-    }
-
-    /**
-     * Retorna a string com o trecho da query resposavel pela Ordenacao dos registros
-     *
-     * @return string
-     */
-    public function getOrderby()
-    {
-        if (is_string($this->_campo_order_by)) {
-            return " ORDER BY {$this->_campo_order_by} ";
-        }
-
-        return '';
-    }
-
     protected function montaHistorico()
     {
         $detalhes = $this->detalhe();
@@ -832,7 +748,7 @@ class clsPmieducarCandidatoFilaUnica
 
     public function indefereCandidatura($motivo = null)
     {
-        $motivo = $motivo == null ? 'null' : '\''. $motivo .'\'';
+        $motivo = $motivo == null ? 'null' : '\'' . $motivo . '\'';
 
         if (is_numeric($this->cod_candidato_fila_unica)) {
             $historico = $this->montaHistorico();
@@ -871,22 +787,23 @@ class clsPmieducarCandidatoFilaUnica
         return false;
     }
 
-    public function alteraSituacao($situacao, $motivo = null)
+    public function alteraSituacao($situacao, $motivo = null, $data = null)
     {
         if (!$this->cod_candidato_fila_unica) {
             return false;
         }
 
         $situacao = $situacao ?: 'NULL';
-        $motivo = $motivo ?: 'NULL';
+        $motivo = str_replace("\'", "''", $motivo) ?: 'NULL';
         $historico = $this->montaHistorico();
+        $data = $data ?: 'NOW()';
 
         $db = new clsBanco();
         $db->Consulta("UPDATE pmieducar.candidato_fila_unica
                           SET situacao = {$situacao},
-                              motivo = {$motivo},
+                              motivo = '{$motivo}',
                               data_situacao = NOW(),
-                              data_solicitacao = NOW(),
+                              data_solicitacao = '{$data}',
                               hora_solicitacao = NOW(),
                               historico = '{$historico}'
                         WHERE cod_candidato_fila_unica = '{$this->cod_candidato_fila_unica}'");

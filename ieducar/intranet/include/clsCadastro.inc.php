@@ -58,6 +58,9 @@ class clsCadastro extends clsCampos
     public $onSubmit = 'acao()';
     public $form_enctype;
 
+    const NOVO = 'N';
+    const EDITAR = 'E';
+
     /**
      * @deprecated
      */
@@ -242,7 +245,6 @@ class clsCadastro extends clsCampos
         $retorno .= "\n<!-- cadastro begin -->\n";
         $retorno .= "<form name='$this->__nome' id='$this->__nome' onsubmit='return $this->onSubmit' action='$this->action'  method='post' target='$this->target' $this->form_enctype>\n";
         $retorno .= "<input name='tipoacao' id='tipoacao' type='hidden' value='$this->tipoacao'>\n";
-        $retorno .= "<input name='__sequencia_fluxo' id='__sequencia_fluxo' type='hidden' value='$this->__sequencia_fluxo'>";
 
         if ($this->campos) {
             reset($this->campos);
@@ -286,25 +288,7 @@ class clsCadastro extends clsCampos
     var aberto = false;';
 
         $retorno .= $this->MakeFormat();
-        $retorno .= "
-    function setColor(color)
-    { \n";
-        reset($this->campos);
-        foreach ($this->campos as $nome => $componente) {
-            $validador = $componente[4] ?? null;
 
-            if (!empty($validador)) {
-                if ($validador == 'cor') {
-                    $retorno .= "
-            if (color) {
-              document.$this->__nome.$nome.value = color;
-            }
-            document.getElementById('" . $nome . "1').style.background = '#' + document.$this->__nome.$nome.value; ";
-                }
-            }
-        }
-
-        $retorno .= "}\n";
         $retorno .= 'function acao(){ ';
 
         unset($this->campos['desabilitado_tab']);
@@ -364,7 +348,7 @@ class clsCadastro extends clsCampos
                             $retorno .= " alert( 'Preencha o campo \'{$nome_campos[$ct_campo]}\' corretamente!' ); \n  return false; }";
                             $retorno .= "else { if(! DvCnpjOk( $campo) ) return false; }  }";
                             $retorno .= "else{ if(! DvCpfOk( $campo) ) return false; }";
-                        } elseif ($componente_campo[0] != 'oculto') {
+                        } elseif ($componente_campo[0] != 'oculto' && $nomeCampo != 'html') {
                             $campo = "document.getElementById(\"{$nomeCampo}[\"+id_campo+\"]\")";
                             $fim_for = '';
                             if ($validador[0] == '*') {
@@ -464,12 +448,7 @@ class clsCadastro extends clsCampos
                         $retorno .= " alert( 'Preencha o campo \'$componente[1]\' corretamente!' ); \n  return false; }";
                         $retorno .= "else { if(! DvCnpjOk( document.getElementById('$nome')) ) return false; }  }";
                         $retorno .= "else{ if(! DvCpfOk( document.getElementById('$nome')) ) return false; }";
-                    } elseif ($nomeCampo == 'listaativarpeso') {
-                        $retorno .= "if(!($validador.test( document.{$this->__nome}.{$nome}_val.value ))) { \n";
-                        $retorno .= " alert( 'Preencha o campo \'$componente[1]\' corretamente!' ); \n";
-                        $retorno .= " document.$this->__nome.{$nome}_val.focus(); \n";
-                        $retorno .= ' return false; } ';
-                    } else {
+                    } elseif ($nome != 'html') {
                         //substituito referencia a elementos por padrï¿½o W3C document.getElementById()
                         //quando se referenciava um nome de elemento como um array ex: cadastro[aluno]
                         //nao funcionava na referencia por nome
@@ -477,33 +456,6 @@ class clsCadastro extends clsCampos
                         $retornoNaFalha = "  mudaClassName( 'formdestaque', 'obrigatorio' );\n";
                         $retornoNaFalha .= "  document.getElementById(\"{$nome}\").className = \"formdestaque\";\n";
                         $retornoNaFalha .= "  alert( 'Preencha o campo \'" . extendChars($componente[1], true) . "\' corretamente!' ); \n";
-
-                        if ($this->__nm_tab) {
-                            $retornoNaFalha .= "
-                  var item = document.getElementById('$nome');
-                  var prox = 1;
-                  do{
-                    item = item.parentNode;
-                    if(item == null)
-                    {
-                      prox = 0;
-                    }
-                    else
-                    {
-                      if(/content[0-9]+/.exec(item.id) != null)
-                      {
-                        prox = 2;
-                      }
-                    }
-                  }while(prox == 1);
-                  if(prox == 2)
-                  {
-                    num_content = +/[0-9]+/.exec(item.id);
-                    num_aba = 2 * num_content - 2;
-                    LTb0('0', num_aba);
-                  }
-              ";
-                        }
 
                         $retornoNaFalha .= "  document.getElementById(\"{$nome}\").focus(); \n";
                         $retornoNaFalha .= "  return false;\n";

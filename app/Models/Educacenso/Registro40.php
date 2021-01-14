@@ -31,6 +31,8 @@ class Registro40 implements RegistroEducacenso, ItemOfRegistro30
 
     public $dependenciaAdministrativa;
 
+    public $situacaoFuncionamento;
+
     public function isDependenciaAdministrativaPublica()
     {
         return $this->dependenciaAdministrativa == DependenciaAdministrativaEscola::MUNICIPAL ||
@@ -51,5 +53,16 @@ class Registro40 implements RegistroEducacenso, ItemOfRegistro30
     public function getCodigoServidor()
     {
         return $this->codigoPessoa;
+    }
+
+    /**
+     * Retorna a propriedade da classe correspondente ao dado no arquivo do censo
+     *
+     * @param int $column
+     * @return string
+     */
+    public function getProperty($column)
+    {
+        // TODO: Implement getProperty() method.
     }
 }

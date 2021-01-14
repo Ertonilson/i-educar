@@ -1,5 +1,11 @@
 <?php
 
+use App\Events\TransferEvent;
+use App\Models\LegacyRegistration;
+use App\Models\LegacyTransferRequest;
+use App\Services\PromotionService;
+use Illuminate\Support\Facades\DB;
+
 require_once 'include/clsBase.inc.php';
 require_once 'include/clsCadastro.inc.php';
 require_once 'include/clsBanco.inc.php';
@@ -17,7 +23,6 @@ class clsIndexBase extends clsBase
     {
         $this->SetTitulo("{$this->_instituicao} i-Educar - Transfer&ecirc;ncia Solicita&ccedil;&atilde;o");
         $this->processoAp = '578';
-        $this->addEstilo('localizacaoSistema');
     }
 }
 
@@ -89,32 +94,11 @@ class indice extends clsCadastro
                 $this->reabrirMatricula($this->ref_cod_matricula);
             }
 
-            $instituicaoId = (new clsBanco)->unicoCampo('select cod_instituicao from pmieducar.instituicao where ativo = 1 order by cod_instituicao asc limit 1;');
-
-            $fakeRequest = new CoreExt_Controller_Request(
-               ['data' => [
-                    'oper' => 'post',
-                    'resource' => 'promocao',
-                    'matricula_id' => $this->ref_cod_matricula,
-                    'instituicao_id' => $instituicaoId,
-                    'ano' => $ano,
-                    'escola' => $escolaId,
-                    'curso' => $cursoId,
-                    'serie' => $serieId,
-                    'turma' => $turmaId
-                ]
-            ]);
-
-            $promocaoApi = new PromocaoApiController();
-            $promocaoApi->setRequest($fakeRequest);
-
-            try {
-                $promocaoApi->Gerar();
-            } catch (CoreExt_Exception $exception) {
-                // Quando o aluno não possuir enturmação na escola que está
-                // cancelando a matrícula, uma Exception era lançada ao
-                // instanciar o ServiceBoletim, este catch garante que não irá
-                // quebrar o processo.
+            /** @var LegacyRegistration $registration */
+            $registration = LegacyRegistration::find($this->ref_cod_matricula);
+            if ($lastEnrollment = $registration->lastEnrollment()->first()) {
+                $promocao = new PromotionService($lastEnrollment);
+                $promocao->fakeRequest();
             }
 
             $this->Excluir();
@@ -179,7 +163,7 @@ class indice extends clsCadastro
 
         $opcoes = ['' => 'Selecione'];
         $objTemp = new clsPmieducarEscola();
-
+        $objTemp->_campo_order_by = 'nome';
         $lista = $objTemp->lista(null, null, null, $det_matricula['ref_cod_instituicao']);
 
         foreach ($lista as $escola) {
@@ -216,6 +200,8 @@ class indice extends clsCadastro
 
     public function Novo()
     {
+        DB::beginTransaction();
+
         $obj_permissoes = new clsPermissoes();
         $obj_permissoes->permissao_cadastra(578, $this->pessoa_logada, 7, "educar_matricula_det.php?cod_matricula={$this->ref_cod_matricula}");
 
@@ -300,13 +286,23 @@ class indice extends clsCadastro
             if ($notasAluno && count($notasAluno)) {
                 $notaAlunoId = $notasAluno[0]->get('id');
 
-                (new Avaliacao_Model_NotaComponenteMediaDataMapper())
-                    ->updateSituation($notaAlunoId, App_Model_MatriculaSituacao::TRANSFERIDO);
+                try {
+                    (new Avaliacao_Model_NotaComponenteMediaDataMapper())
+                        ->updateSituation($notaAlunoId, App_Model_MatriculaSituacao::TRANSFERIDO);
+                } catch(\Throwable $exception) {
+                    DB::rollback();
+                }
             }
+
+            DB::commit();
+
+            event(new TransferEvent(LegacyTransferRequest::findOrFail($cadastrou)));
 
             $this->mensagem .= 'Cadastro efetuado com sucesso.<br>';
             $this->simpleRedirect("educar_matricula_det.php?cod_matricula={$this->ref_cod_matricula}");
         }
+
+        DB::rollback();
 
         $this->mensagem = 'Cadastro n&atilde;o realizado.<br>';
 

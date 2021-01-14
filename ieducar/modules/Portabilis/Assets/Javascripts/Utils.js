@@ -3,6 +3,9 @@
 
 $j = jQuery.noConflict();
 
+function linkUrlPrivada(url) {
+  return '/abre-url-privada?url=' + encodeURI(url);
+}
 
 function buildId(id) {
   return typeof(id) == 'string' && id.length > 0 && id.charAt(0) != '#' ? '#' + id : id;
@@ -247,6 +250,15 @@ function dateBrToDb(value) {
 
 function safeUtf8Decode(s) {
   return stringUtils.toUtf8(s);
+}
+
+function formatDate(data) {
+  data = new Date(data + ' 00:00');
+  var dia = data.getDate().toString().padStart(2, "0");
+  var mes = (data.getMonth()+1).toString().padStart(2, "0");
+  var ano = data.getFullYear();
+
+  return dia + '/' + mes + '/' + ano;
 }
 
 // feedback messages

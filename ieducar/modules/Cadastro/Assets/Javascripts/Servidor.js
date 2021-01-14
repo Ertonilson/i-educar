@@ -48,7 +48,7 @@ function submitForm() {
     }
   });
 
-  if (block) {
+  if (block && tipoacao != 'Novo') {
     confirmaEnvio();
   } else {
     acao();
@@ -90,6 +90,7 @@ function confirmaEnvio() {
 }
 
 let obrigarCamposCenso = $j('#obrigar_campos_censo').val() == '1';
+let tipoacao = $j("#tipoacao").val();
 let escolaridadeSuperior = false;
 
 function validaServidor() {
@@ -458,6 +459,11 @@ function validateGraduations() {
 
     if (obrigarCamposCenso && collegeId.val() == '' || collegeName.val() == '') {
       messageUtils.error('O campo: Instituição de Educação Superior é obrigatório.', collegeName);
+      result = false;
+    }
+
+    if (collegeName.val() != '' && collegeId.val() == '') {
+      messageUtils.error('O campo: Instituição de Educação Superior precisa ser uma instituição válida.', collegeName);
       result = false;
     }
   });

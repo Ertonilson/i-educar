@@ -24,14 +24,6 @@
  * @version   $Id$
  */
 
-function openfoto(foto, altura, largura)
-{
-  abrir = 'visualizarfoto.php?id_foto=' + foto;
-  apr   = 'width=' + altura + ', height=' + largura + ', scrollbars=no, top=10, left=10';
-  var foto_ = window.open(abrir, 'JANELA_FOTO',  apr);
-  foto_.focus();
-}
-
 /**
  * @TODO Remover função, chamadas no i-Educar comentadas (código nunca invocado).
  *   Ver: $ egrep -rn 'setFocus[ ]{0,3}\(' intranet/
@@ -123,28 +115,6 @@ function excluirSumit(id, nome_campo)
 
 
 // Scripts originários de clsCampos.inc.php
-
-/**
- * @TODO Remover função após remover trechos de código para campos 'latitude'
- *   e 'longitude' de clsCampos.inc.php.
- *   Ver: $ egrep -rn 'colocamenos[ ]{0,3}\(' intranet/
- */
-function colocaMenos(campo)
-{
-  if (campo.value.indexOf('0') != -1 || campo.value.indexOf('1') != -1 ||
-    campo.value.indexOf('2') != -1 || campo.value.indexOf('3') != -1 ||
-    campo.value.indexOf('4') != -1 || campo.value.indexOf('5') != -1 ||
-    campo.value.indexOf('6') != -1 || campo.value.indexOf('7') != -1 ||
-    campo.value.indexOf('8') != -1 || campo.value.indexOf('9') != -1
-  ) {
-    if (campo.value.indexOf('-') == -1) {
-      campo.value = '-' + campo.value;
-    }
-  }
-
-  return false;
-}
-
 function formataData(campo, e)
 {
   if (typeof window.event != 'undefined') {
@@ -166,11 +136,15 @@ function formataData(campo, e)
   }
 }
 
-function formataHora(campo, e)
+function formataHora(campo, e, segundos = false)
 {
   if (typeof window.event != 'undefined') {
     if (window.event.keyCode != 58) {
       if ((campo.value.length == 2)) {
+        campo.value += ':';
+      }
+
+      if (segundos && (campo.value.length == 5)) {
         campo.value += ':';
       }
     }
@@ -181,6 +155,10 @@ function formataHora(campo, e)
       e.which != 13 && e.which != 0
     ) {
       if ((campo.value.length == 2)) {
+        campo.value += ':';
+      }
+
+      if (segundos && (campo.value.length == 5)) {
         campo.value += ':';
       }
     }
@@ -550,73 +528,6 @@ function formataCNPJ(campo, e)
 }
 
 /**
- * @TODO Remover função após remover trechos de código para campos 'fone' de
- *   clsCampos.inc.php. Não existem chamadas para campoFone().
- *   Ver: $ egrep -rn 'formataFone[ ]{0,3}\(' intranet/
- */
- function formataFoneNew(campo, e)
-{   
-    // console.log(e.keyCode);
-    if (window.event.keyCode != 40 && (campo.value.length == 0)) {
-      campo.value += '(';
-    }
-    if (window.event.keyCode != 41 && (campo.value.length == 3)) {
-      campo.value += ')';
-    }
-    // Allow: backspace, delete, tab, escape, enter and .
-    if ($j.inArray(e.keyCode, [46, 8, 9, 27, 13, 110, 190]) !== -1 ||
-         // Allow: Ctrl+A
-        (e.keyCode == 65 && e.ctrlKey === true) || 
-         // Allow: home, end, left, right
-        (e.keyCode >= 35 && e.keyCode <= 39)) {
-             // let it happen, don't do anything
-             return;
-    }
-    // Ensure that it is a number and stop the keypress
-    if ((e.keyCode < 48 || e.keyCode > 57) && (e.keyCode != 40 && e.keyCode != 41) ) {
-        e.preventDefault();
-    }
-}
-
-function formataFone(campo, e)
-{
-  if (typeof window.event != 'undefined') {
-    if (window.event.keyCode != 40 && (campo.value.length == 0)) {
-      campo.value += '(';
-    }
-
-    if (window.event.keyCode != 41 && (campo.value.length == 3)) {
-      campo.value += ')';
-    }
-
-    if (
-      window.event.keyCode != 45 && campo.value.length == 8 &&
-      campo.value.substr(7, 1) != '-'
-    ) {
-      campo.value += '-';
-    }
-  }
-  else {
-    if (e.which != 32 && e.which != 13 && e.which != 8) {
-      if (e.which != 40 && (campo.value.length == 1)) {
-        campo.value = '(' + campo.value;
-      }
-
-      if (e.which != 41 && (campo.value.length == 4)) {
-        campo.value = campo.value.substr(0, 3) + ')' + campo.value.substr(3, 1);
-      }
-
-      if (e.which != 45 && campo.value.length == 8 && campo.value.substr(7, 1) != '-') {
-        campo.value += '-';
-      }
-    }
-    else {
-      campo.value = campo.value.substr(0, campo.value.length - 1);
-    }
-  }
-}
-
-/**
  * @TODO Remover função. Aparentemente nunca é chamada, a única página que chama
  *   clsCampos::campoTextoPesquisa() (intranet/funcionario_cad.php) não entra
  *   no trecho de código que gera o output HTML para esta função.
@@ -639,27 +550,6 @@ function pesquisa_valores_popless(caminho, campo)
   }
   else {
     showExpansivel(500, 500, '<iframe src="' + caminho + '&campo=' + campo + '&div=' + div + '&popless=1" frameborder="0" height="100%" width="500" marginheight="0" marginwidth="0" name="temp_win_popless"></iframe>', 'Pesquisa de valores');
-  }
-}
-
-/**
- * @TODO Remover função após remover trechos de código para campos
- *   'listaativarpeso<select>' de clsCampos.inc.php. Não existem chamadas para
- *   campoFoneListaAtivarPeso<Select>().
- *   Ver: $ egrep -rn 'formataFone[ ]{0,3}\(' intranet/
- */
-function ativaCampo(campo)
-{
-  campo2 = document.getElementById(campo + '_lst');
-  campo3 = document.getElementById(campo + '_val');
-
-  if (campo2.disabled) {
-    campo2.disabled = false;
-    campo3.disabled = false;
-  }
-  else {
-    campo2.disabled = true;
-    campo3.disabled = true;
   }
 }
 
@@ -761,7 +651,7 @@ function cv_set_campo(campo1, valor1, campo2, valor2, campo3, valor3, campo4,
   obj1          = parent.document.getElementById(campo1);
 
   if (obj1){
-    obj1.value    = valor1;    
+    obj1.value    = valor1;
   }
 
   obj2       = parent.document.getElementById(campo2);
@@ -781,18 +671,18 @@ function cv_set_campo(campo1, valor1, campo2, valor2, campo3, valor3, campo4,
   }
 
   obj5       = parent.document.getElementById(campo5);
-  
+
   if (obj5)
     obj5.value = valor5;
-  
+
 
   obj6       = parent.document.getElementById(campo6);
-  
+
   if (obj6)
     obj6.value = valor6;
 
   obj7          = parent.document.getElementById(campo7);
-  
+
   if (obj7){
     obj7.value    = valor7;
   }

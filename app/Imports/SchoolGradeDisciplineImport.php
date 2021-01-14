@@ -33,7 +33,7 @@ class SchoolGradeDisciplineImport implements ToModel, WithProgressBar, WithHeadi
     */
     public function model(array $row)
     {
-        return LegacySchoolGradeDiscipline::query()->firstOrNew([
+        return LegacySchoolGradeDiscipline::query()->updateOrCreate([
             'ref_ref_cod_serie' => $row['grade_id'],
             'ref_ref_cod_escola' => $row['school_id'] ?? $this->school,
             'ref_cod_disciplina' => $row['discipline_id'],

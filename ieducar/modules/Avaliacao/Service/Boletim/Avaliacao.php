@@ -28,7 +28,7 @@ trait Avaliacao_Service_Boletim_Avaliacao
      *
      * @var array
      */
-    protected $_mediasGerais = [];
+    protected $_mediaGeral = [];
 
     /**
      * Notas adicionadas no boletim para inclusão ou edição.
@@ -78,6 +78,20 @@ trait Avaliacao_Service_Boletim_Avaliacao
      * @var array
      */
     protected $_pareceresGerais = [];
+
+    /**
+     * Faltas do aluno nos componentes cursados em todas as series do curso.
+     *
+     * @var array
+     */
+    protected $_faltasComponentesCiclo = [];
+
+    /**
+     * Faltas do aluno no geral em todas as series do curso..
+     *
+     * @var array
+     */
+    protected $_faltasGeraisCiclo = [];
 
     /**
      * Retorna as instâncias de Avaliacao_Model_NotaComponente do aluno.
@@ -146,25 +160,25 @@ trait Avaliacao_Service_Boletim_Avaliacao
     }
 
     /**
-     * Retorna as instâncias de Avaliacao_Model_MediaGeral do aluno.
+     * Retorna a instância de Avaliacao_Model_MediaGeral do aluno.
      *
      * @return array
      */
-    public function getMediasGerais()
+    public function getMediaGeral()
     {
-        return $this->_mediasGerais;
+        return $this->_mediaGeral;
     }
 
     /**
-     * Retorna as instâncias de Avaliacao_Model_MediaGeral do aluno.
+     * Retorna a instância de Avaliacao_Model_MediaGeral do aluno.
      *
-     * @param array $mediasGerais
+     * @param array $mediaGeral
      *
      * @return $this
      */
-    public function setMediasGerais(array $mediasGerais)
+    public function setMediaGeral($mediaGeral)
     {
-        $this->_mediasGerais = $mediasGerais;
+        $this->_mediaGeral = $mediaGeral;
 
         return $this;
     }
@@ -303,6 +317,49 @@ trait Avaliacao_Service_Boletim_Avaliacao
     public function setPareceresGerais(array $pareceresGerais)
     {
         $this->_pareceresGerais = $pareceresGerais;
+
+        return $this;
+    }
+
+    /**
+     * Retorna as instâncias de Avaliacao_Model_FaltaGeral do aluno.
+     *
+     * @return array
+     */
+    public function getFaltasGeraisCiclo()
+    {
+        return $this->_faltasGeraisCiclo;
+    }
+
+    /**
+     * @param array $faltasGeraisCiclo
+     * @return $this
+     */
+    public function setFaltasGeraisCiclo(array $faltasGeraisCiclo)
+    {
+        $this->_faltasGeraisCiclo = $faltasGeraisCiclo;
+
+        return $this;
+    }
+
+    /**
+     * Retorna as instâncias de Avaliacao_Model_FaltaGeral do aluno.
+     *
+     * @return array
+     */
+    public function getFaltasComponentesCiclo()
+    {
+        return $this->_faltasComponentesCiclo;
+    }
+
+
+    /**
+     * @param array $faltasComponentesCiclo
+     * @return $this
+     */
+    public function setFaltasComponentesCiclo(array $faltasComponentesCiclo)
+    {
+        $this->_faltasComponentesCiclo = $faltasComponentesCiclo;
 
         return $this;
     }

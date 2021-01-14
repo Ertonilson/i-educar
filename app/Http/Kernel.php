@@ -20,6 +20,8 @@ class Kernel extends HttpKernel
         \Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull::class,
         \App\Http\Middleware\TrustProxies::class,
         \App\Http\Middleware\ChangeAppName::class,
+        \App\Http\Middleware\ConnectTenantDatabase::class,
+        \App\Http\Middleware\LoadSettings::class,
     ];
 
     /**
@@ -36,15 +38,12 @@ class Kernel extends HttpKernel
             \Illuminate\View\Middleware\ShareErrorsFromSession::class,
             // \App\Http\Middleware\VerifyCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
-            \App\Http\Middleware\ChangeAppName::class,
-            \App\Http\Middleware\ConnectTenantDatabase::class,
             \App\Http\Middleware\SetLayoutVariables::class,
-            \App\Http\Middleware\LoadLegacyConfig::class,
         ],
 
         'api' => [
-            'throttle:60,1',
             'bindings',
+            \Barryvdh\Cors\HandleCors::class
         ],
     ];
 
@@ -70,6 +69,7 @@ class Kernel extends HttpKernel
         'ieducar.xssbypass' => \App\Http\Middleware\XssByPass::class,
         'ieducar.suspended' => \App\Http\Middleware\Suspended::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
+        'ieducar.checkresetpassword' => \App\Http\Middleware\CheckResetPassword::class
     ];
 
     /**
@@ -81,7 +81,7 @@ class Kernel extends HttpKernel
      */
     protected $middlewarePriority = [
         \App\Http\Middleware\ConnectTenantDatabase::class,
-        \App\Http\Middleware\LoadLegacyConfig::class,
+        \App\Http\Middleware\LoadSettings::class,
         \Illuminate\Session\Middleware\StartSession::class,
         \Illuminate\View\Middleware\ShareErrorsFromSession::class,
         \App\Http\Middleware\Authenticate::class,

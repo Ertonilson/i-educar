@@ -13,7 +13,6 @@ class clsIndexBase extends clsBase
     {
         $this->SetTitulo("{$this->_instituicao} i-Educar - Etapa do aluno");
         $this->processoAp = "578";
-        $this->addEstilo("localizacaoSistema");
     }
 }
 
@@ -57,7 +56,7 @@ class indice extends clsCadastro
         $enturmacoes = new clsPmieducarMatriculaTurma();
         $enturmacoes = $enturmacoes->lista(
             $this->cod_matricula, null, null,
-            null, null, null, null, null, 1, null, null, null,
+            null, null, null, null, null, null, null, null, null,
             null, null, null, null, null, null, null, null, false,
             null, null, null, false, false, false, null, null,
             false, null, false, false, false, null, true

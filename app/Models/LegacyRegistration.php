@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App_Model_MatriculaSituacao;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -11,6 +13,12 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * LegacyRegistration
  *
  * @property int $id
+ * @property boolean isTransferred
+ * @property boolean isAbandoned
+ * @property LegacyStudentAbsence studentAbsence
+ * @property LegacyStudentScore studentScore
+ * @property LegacyStudentDescriptive studentDescriptive
+ * @property LegacyCourse course
  *
  */
 class LegacyRegistration extends Model
@@ -29,7 +37,18 @@ class LegacyRegistration extends Model
      * @var array
      */
     protected $fillable = [
-        'ref_cod_aluno', 'data_cadastro', 'ano', 'ref_usuario_cad',
+        'ref_ref_cod_serie',
+        'ref_ref_cod_escola',
+        'ref_cod_curso',
+        'ref_cod_aluno',
+        'data_cadastro',
+        'ano',
+        'ref_usuario_cad',
+        'dependencia',
+        'ativo',
+        'aprovado',
+        'data_matricula',
+        'ultima_matricula'
     ];
 
     /**
@@ -79,11 +98,61 @@ class LegacyRegistration extends Model
     }
 
     /**
+     * Relação com a escola.
+     *
+     * @return BelongsTo
+     */
+    public function school()
+    {
+        return $this->belongsTo(LegacySchool::class, 'ref_ref_cod_escola');
+    }
+
+    /**
+     * Relação com a série.
+     * @return BelongsTo
+     *
+     * @deprecated
+     * @see grade()
+     */
+    public function level()
+    {
+        return $this->belongsTo(LegacyLevel::class, 'ref_ref_cod_serie');
+    }
+
+    /**
+     * Relação com a série.
+     *
+     * @return BelongsTo
+     */
+    public function grade()
+    {
+        return $this->belongsTo(LegacyGrade::class, 'ref_ref_cod_serie');
+    }
+
+    /**
+     * Relação com o curso.
+     *
+     * @return BelongsTo
+     */
+    public function course()
+    {
+        return $this->belongsTo(LegacyCourse::class, 'ref_cod_curso');
+    }
+
+    /**
      * @return HasMany
      */
     public function enrollments()
     {
         return $this->hasMany(LegacyEnrollment::class, 'ref_cod_matricula');
+    }
+
+    /**
+     * @return HasMany
+     */
+    public function activeEnrollments()
+    {
+        return $this->hasMany(LegacyEnrollment::class, 'ref_cod_matricula')->where('ativo', 1);
     }
 
     /**
@@ -96,5 +165,89 @@ class LegacyRegistration extends Model
         $hasOne->getQuery()->orderByDesc('sequencial');
 
         return $hasOne;
+    }
+
+    /**
+     * @return HasMany
+     */
+    public function exemptions()
+    {
+        return $this->hasMany(LegacyDisciplineExemption::class, 'ref_cod_matricula', 'cod_matricula');
+    }
+
+    /**
+     * @param Builder $query
+     *
+     * @return Builder
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('ativo', 1);
+    }
+
+    public function getIsTransferredAttribute()
+    {
+        return $this->aprovado == App_Model_MatriculaSituacao::TRANSFERIDO;
+    }
+
+    public function getIsAbandonedAttribute()
+    {
+        return $this->aprovado == App_Model_MatriculaSituacao::ABANDONO;
+    }
+
+    /**
+     * @return HasOne
+     */
+    public function studentAbsence()
+    {
+        return $this->hasOne(LegacyStudentAbsence::class, 'matricula_id');
+    }
+
+    /**
+     * @return HasOne
+     */
+    public function studentScore()
+    {
+        return $this->hasOne(LegacyStudentScore::class, 'matricula_id');
+    }
+
+    /**
+     * @return HasOne
+     */
+    public function studentDescriptiveOpinion()
+    {
+        return $this->hasOne(LegacyStudentDescriptiveOpinion::class, 'matricula_id');
+    }
+
+    /**
+     * @return HasMany
+     */
+    public function dependencies()
+    {
+        return $this->hasMany(LegacyDisciplineDependence::class, 'ref_cod_matricula', 'cod_matricula');
+    }
+
+    /**
+     * @return LegacyEvaluationRule
+     */
+    public function getEvaluationRule()
+    {
+        $evaluationRuleGradeYear = $this->hasOne(LegacyEvaluationRuleGradeYear::class, 'serie_id', 'ref_ref_cod_serie')
+            ->where('ano_letivo', $this->ano)
+            ->firstOrFail();
+
+        if ($this->school->utiliza_regra_diferenciada && $evaluationRuleGradeYear->differentiatedEvaluationRule) {
+            return $evaluationRuleGradeYear->differentiatedEvaluationRule;
+        }
+
+        return $evaluationRuleGradeYear->evaluationRule;
+    }
+
+    /**
+     * @return string
+     */
+    public function getStatusDescriptionAttribute()
+    {
+        return (new RegistrationStatus)->getDescriptiveValues()[(int) $this->aprovado];
     }
 }

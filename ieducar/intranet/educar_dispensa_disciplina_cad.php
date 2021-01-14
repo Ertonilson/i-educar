@@ -1,5 +1,9 @@
 <?php
 
+use App\Models\LegacyRegistration;
+use App\Models\LegacySchoolStage;
+use App\Services\PromotionService;
+
 require_once 'include/clsBase.inc.php';
 require_once 'include/clsCadastro.inc.php';
 require_once 'include/pmieducar/geral.inc.php';
@@ -9,6 +13,7 @@ require_once 'Avaliacao/Model/NotaComponenteDataMapper.php';
 require_once 'Avaliacao/Model/FaltaAlunoDataMapper.php';
 require_once 'Avaliacao/Model/FaltaComponenteDataMapper.php';
 require_once 'ComponenteCurricular/Model/ComponenteDataMapper.php';
+require_once 'modules/Avaliacao/Views/PromocaoApiController.php';
 
 class clsIndexBase extends clsBase
 {
@@ -16,7 +21,6 @@ class clsIndexBase extends clsBase
     {
         $this->SetTitulo($this->_instituicao . ' i-Educar - Dispensa Componente Curricular');
         $this->processoAp = 578;
-        $this->addEstilo('localizacaoSistema');
     }
 }
 
@@ -102,6 +106,7 @@ class indice extends clsCadastro
 
         $this->breadcrumb('Dispensa de componentes curriculares',['educar_index.php' => 'Escola']);
         $this->modoEdicao = $retorno == 'Editar';
+        $this->loadAssets();
         return $retorno;
     }
 
@@ -171,6 +176,7 @@ class indice extends clsCadastro
         if ($this->modoEdicao) {
             $this->campoRotulo('nm_disciplina', 'Disciplina', $opcoes[$this->ref_cod_disciplina]);
             $this->campoOculto('ref_cod_disciplina', $this->ref_cod_disciplina);
+            $this->campoOculto('modo_edicao', $this->modoEdicao);
         } else {
             $this->inputsHelper()->multipleSearchComponenteCurricular(null, ['label' => 'Componentes lecionados', 'required' => true], ['searchForArea' => true]);
         }
@@ -264,6 +270,7 @@ class indice extends clsCadastro
             return false;
         }
 
+        $this->rodaPromocao();
         $this->mensagem .= 'Cadastro efetuado com sucesso.<br />';
         $this->simpleRedirect('educar_dispensa_disciplina_lst.php?ref_cod_matricula=' . $this->ref_cod_matricula);
 
@@ -273,7 +280,7 @@ class indice extends clsCadastro
     {
         $obj_permissoes = new clsPermissoes();
         $obj_permissoes->permissao_cadastra(578, $this->pessoa_logada, 7, 'educar_dispensa_disciplina_lst.php?ref_cod_matricula=' . $this->ref_cod_matricula);
-        
+
         $dadosDaDispensa = $this->obtemDadosDaDispensa();
         $objetoDispensa = $this->montaObjetoDispensa($dadosDaDispensa);
 
@@ -284,6 +291,7 @@ class indice extends clsCadastro
 
         $editou = $objetoDispensa->edita();
         if ($editou) {
+            $this->rodaPromocao();
             $this->mensagem .= 'Edição efetuada com sucesso.<br />';
             $this->simpleRedirect('educar_dispensa_disciplina_lst.php?ref_cod_matricula=' . $this->ref_cod_matricula);
         }
@@ -306,6 +314,7 @@ class indice extends clsCadastro
         $excluiu = $objetoDispensa->excluir();
 
         if ($excluiu) {
+            $this->rodaPromocao();
             $this->mensagem .= 'Exclusão efetuada com sucesso.<br />';
             $this->simpleRedirect('educar_dispensa_disciplina_lst.php?ref_cod_matricula=' . $this->ref_cod_matricula);
         }
@@ -313,6 +322,33 @@ class indice extends clsCadastro
         $this->mensagem = 'Exclusão não realizada.<br />';
 
         return false;
+    }
+
+    public function maiorEtapaUtilizada($registration)
+    {
+        $where = [
+            'ref_ref_cod_escola' => $registration->ref_ref_cod_escola,
+            'ref_ano' => $registration->ano,
+        ];
+
+        $totalEtapas['total'] = LegacySchoolStage::query()->where($where)->count();
+        $arrayEtapas = [];
+
+        for ($i = 1; $i <= $totalEtapas['total']; $i++)
+        {
+            $arrayEtapas[$i] = strval($i);
+        }
+
+        $arrayEtapas = array_diff($arrayEtapas, $this->etapa);
+        return max($arrayEtapas);
+    }
+
+    public function rodaPromocao()
+    {
+        $registration = LegacyRegistration::find($this->ref_cod_matricula);
+        $_GET['etapa'] = $this->maiorEtapaUtilizada($registration);
+        $promocao = new PromotionService($registration->lastEnrollment()->first());
+        $promocao->fakeRequest();
     }
 
     public function montaEtapas()
@@ -450,6 +486,13 @@ class indice extends clsCadastro
         }
         $notaComponenteCurricularMapper->delete($notaComponenteCurricular[0]);
 
+        $auditoria = new clsModulesAuditoriaGeral('nota_removida_dispensa', $this->pessoa_logada);
+        $auditoria->exclusao([
+            'nota_aluno_id' => $notaAluno,
+            'componente_curricular_id' => $disciplinaId,
+            'etapa' => $etapa,
+        ]);
+
         return true;
     }
 
@@ -472,6 +515,13 @@ class indice extends clsCadastro
         }
         $faltaComponenteCurricularMapper->delete($faltaComponenteCurricular[0]);
 
+        $auditoria = new clsModulesAuditoriaGeral('falta_removida_dispensa', $this->pessoa_logada);
+        $auditoria->exclusao([
+            'falta_aluno_id' => $faltaAluno,
+            'componente_curricular_id' => $disciplinaId,
+            'etapa' => $etapa,
+        ]);
+
         return true;
     }
 
@@ -480,6 +530,16 @@ class indice extends clsCadastro
         $componenteCurricular = $mapper->find($disciplinaId)->nome;
 
         return $componenteCurricular;
+    }
+
+    public function loadAssets()
+    {
+        $scripts = [
+            '/modules/Cadastro/Assets/Javascripts/ModalDispensasDisciplinaCad.js',
+            '/modules/Portabilis/Assets/Javascripts/ClientApi.js',
+        ];
+
+        Portabilis_View_Helper_Application::loadJavascript($this, $scripts);
     }
 }
 

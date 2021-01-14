@@ -11,7 +11,6 @@ class clsIndexBase extends clsBase
   {
     $this->SetTitulo($this->_instituicao . ' i-Educar - Customiza&ccedil;&atilde;o de labels');
     $this->processoAp = 9998869;
-    $this->addEstilo('localizacaoSistema');
   }
 }
 
@@ -50,8 +49,15 @@ class indice extends clsCadastro
 
     $customLabel = new CustomLabel();
     $defaults = $customLabel->getDefaults();
-
+     ksort($defaults);
+    $rotulo = null;
     foreach($defaults as $k => $v) {
+        $rotulo2 = explode('.', $k)[0];
+
+        if ($rotulo2 != $rotulo) {
+            $rotulo2 = ucfirst($rotulo2);
+            $this->campoRotulo($rotulo2, '<strong>' . $rotulo2 . '</strong>');
+        }
         $this->inputsHelper()->text('custom_labels[' . $k . ']', array(
             'label' => $k,
             'size' => 100,

@@ -185,8 +185,8 @@ function existeDispensa(componentes){
         async    : false,
         success  : function (dataResponse) {
             if(dataResponse.existe_dispensa){
-                messageUtils.error('Não foi possível remover o componente. Existe registros de dispensa neste componente.');
                 retorno = true;
+                ModalDispensas.init('dispensas', dataResponse.dispensas);
             }
         }
     };
@@ -238,7 +238,7 @@ submitButton.click(function(){
         }
     });
 
-    if (existeDependencia(arrayComponentes) || existeDispensa(arrayComponentes)) {
+    if (existeDispensa(arrayComponentes) || existeDependencia(arrayComponentes)) {
         return false;
     }
 
@@ -320,3 +320,18 @@ $j('#ano_letivo').change(function() {
 
   window.location.href = url.toString();
 });
+
+function cloneValues(componente_id, classe){
+  var valor = $j('#' + classe + '_' + componente_id).val();
+
+  $j('.' + classe).each(function() {
+    var id = $j(this).data('id')
+
+    if ($j('.check_' + id).is(':checked')) {
+      $j(this).val(valor);
+      if (classe == 'anos_letivos') {
+        $j(this).trigger('chosen:updated');
+      }
+    }
+  }, this);
+}

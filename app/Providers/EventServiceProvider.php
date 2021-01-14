@@ -2,15 +2,23 @@
 
 namespace App\Providers;
 
+use App\Events\TransferEvent;
+use App\Listeners\AuthenticatedUser;
+use App\Listeners\ConfigureAuthenticatedUserForAudit;
+use App\Listeners\TransferNotificationListener;
 use App\Models\SchoolManager;
 use App\Observers\SchoolManagerObserver;
 use App\Listeners\LoginLegacySession;
 use App\Listeners\NotificationWhenResetPassword;
+use Illuminate\Auth\Events\Authenticated;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
+use App\Events\RegistrationEvent;
+use App\Listeners\CopyTransferDataListener;
+use App\Listeners\AcceptTransferRequestListener;
 
 class EventServiceProvider extends ServiceProvider
 {
@@ -29,6 +37,17 @@ class EventServiceProvider extends ServiceProvider
         PasswordReset::class => [
             NotificationWhenResetPassword::class,
         ],
+        Authenticated::class => [
+            AuthenticatedUser::class,
+            ConfigureAuthenticatedUserForAudit::class,
+        ],
+        RegistrationEvent::class => [
+            CopyTransferDataListener::class,
+            AcceptTransferRequestListener::class
+        ],
+        TransferEvent::class => [
+            TransferNotificationListener::class,
+        ],
     ];
 
     /**
@@ -39,7 +58,7 @@ class EventServiceProvider extends ServiceProvider
     public function boot()
     {
         parent::boot();
-        
+
         SchoolManager::observe(SchoolManagerObserver::class);
     }
 }

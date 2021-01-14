@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-
-class LegacyLevel extends Model
+/**
+ * @deprecated
+ *
+ * @see LegacyGrade
+ */
+class LegacyLevel extends LegacyGrade
 {
+
     /**
      * @var string
      */
@@ -21,7 +24,8 @@ class LegacyLevel extends Model
      * @var array
      */
     protected $fillable = [
-        'nm_serie', 'ref_usuario_cad', 'ref_cod_curso', 'etapa_curso', 'carga_horaria', 'data_cadastro',
+        'nm_serie', 'ref_usuario_cad', 'ref_cod_curso', 'etapa_curso', 'carga_horaria', 'data_cadastro', 'concluinte',
+        'dias_letivos', 'ativo', 'intervalo'
     ];
 
     /**
@@ -53,15 +57,5 @@ class LegacyLevel extends Model
             'serie_id',
             'regra_avaliacao_id'
         )->withPivot('ano_letivo', 'regra_avaliacao_diferenciada_id');
-    }
-
-    /**
-     * Relacionamento com o curso.
-     *
-     * @return BelongsTo
-     */
-    public function course()
-    {
-        return $this->belongsTo(LegacyCourse::class, 'ref_cod_curso');
     }
 }

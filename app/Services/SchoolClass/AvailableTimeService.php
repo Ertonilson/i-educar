@@ -41,6 +41,8 @@ class AvailableTimeService
                 $enrollmentsQuery->whereHas('registration', function ($registrationQuery) use ($studentId, $schoolClass) {
                     $registrationQuery->where('ref_cod_aluno', $studentId);
                     $registrationQuery->where('ano', $schoolClass->ano);
+                    $registrationQuery->where('aprovado', 3);
+                    $registrationQuery->where('ativo', 1);
                 })->where('ativo', 1);
 
                 if ($this->enrollmentDate) {
@@ -55,8 +57,8 @@ class AvailableTimeService
 
         $otherSchoolClass = $schoolClassQuery->get();
 
-        foreach ($otherSchoolClass as $otherSchoolClass) {
-            if ($this->schedulesMatch($schoolClass, $otherSchoolClass)) {
+        foreach ($otherSchoolClass as $oneSchoolClass) {
+            if ($this->schedulesMatch($schoolClass, $oneSchoolClass)) {
                 return false;
             }
         }
@@ -103,8 +105,10 @@ class AvailableTimeService
     {
         // O aluno pode ter matrícula em duas turmas no mesmo horário desde que:
         //
-        // - Uma turma seja de Escolarização e a outra seja de Atendimento educacional especializado - AEE;
-        // - O horário de funcionamento da turma de escolarização seja igual ou superior a 7 horas diárias;
+        // - Uma turma seja de Escolarização e a outra seja de Atendimento
+        //   educacional especializado - AEE.
+        // - O horário de funcionamento da turma de escolarização seja igual ou
+        //   superior a 7 horas diárias.
 
         if ($this->hasEscolarizacaoAndAee($schoolClass, $otherSchoolClass)) {
             $schoolClassEscolarizacao = $this->getSchoolClassEscolarizacao($schoolClass, $otherSchoolClass);
@@ -128,6 +132,11 @@ class AvailableTimeService
             return false;
         }
 
+        if (!$this->hasDates($schoolClass) || !$this->hasDates($otherSchoolClass)) {
+            return false;
+        }
+
+
         // Valida se o início e fim do ano letivo da turma de destino não está
         // entre o período de início e fim da turma da outra enturmação.
 
@@ -141,7 +150,10 @@ class AvailableTimeService
         // Caso os períodos do ano letivo sejam conflitantes, valida se os
         // horários se sobrepoem.
 
-        return $schoolClass->hora_inicial <= $otherSchoolClass->hora_final && $schoolClass->hora_final >= $otherSchoolClass->hora_inicial;
+        $startBefore = $schoolClass->hora_inicial <= $otherSchoolClass->hora_final;
+        $endAfter = $schoolClass->hora_final >= $otherSchoolClass->hora_inicial;
+
+        return $startBefore && $endAfter;
     }
 
     /**
@@ -149,6 +161,7 @@ class AvailableTimeService
      *
      * @param LegacySchoolClass $schoolClass
      * @param LegacySchoolClass $otherSchoolClass
+     *
      * @return bool
      */
     private function hasEscolarizacaoAndAee(LegacySchoolClass $schoolClass, LegacySchoolClass $otherSchoolClass)
@@ -171,6 +184,7 @@ class AvailableTimeService
      *
      * @param LegacySchoolClass $schoolClass
      * @param LegacySchoolClass $otherSchoolClass
+     *
      * @return LegacySchoolClass
      */
     private function getSchoolClassEscolarizacao(LegacySchoolClass $schoolClass, LegacySchoolClass $otherSchoolClass)
@@ -180,5 +194,18 @@ class AvailableTimeService
         }
 
         return $otherSchoolClass;
+    }
+
+    public function hasDates(LegacySchoolClass $schoolClass)
+    {
+        if (!$schoolClass->begin_academic_year) {
+            return false;
+        }
+
+        if (!$schoolClass->end_academic_year) {
+            return false;
+        }
+
+        return true;
     }
 }

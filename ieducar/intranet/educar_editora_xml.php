@@ -1,29 +1,5 @@
 <?php
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-    *                                                                        *
-    *   @author Prefeitura Municipal de Itajaí                               *
-    *   @updated 29/03/2007                                                  *
-    *   Pacote: i-PLB Software Público Livre e Brasileiro                    *
-    *                                                                        *
-    *   Copyright (C) 2006  PMI - Prefeitura Municipal de Itajaí             *
-    *                       ctima@itajai.sc.gov.br                           *
-    *                                                                        *
-    *   Este  programa  é  software livre, você pode redistribuí-lo e/ou     *
-    *   modificá-lo sob os termos da Licença Pública Geral GNU, conforme     *
-    *   publicada pela Free  Software  Foundation,  tanto  a versão 2 da     *
-    *   Licença   como  (a  seu  critério)  qualquer  versão  mais  nova.    *
-    *                                                                        *
-    *   Este programa  é distribuído na expectativa de ser útil, mas SEM     *
-    *   QUALQUER GARANTIA. Sem mesmo a garantia implícita de COMERCIALI-     *
-    *   ZAÇÃO  ou  de ADEQUAÇÃO A QUALQUER PROPÓSITO EM PARTICULAR. Con-     *
-    *   sulte  a  Licença  Pública  Geral  GNU para obter mais detalhes.     *
-    *                                                                        *
-    *   Você  deve  ter  recebido uma cópia da Licença Pública Geral GNU     *
-    *   junto  com  este  programa. Se não, escreva para a Free Software     *
-    *   Foundation,  Inc.,  59  Temple  Place,  Suite  330,  Boston,  MA     *
-    *   02111-1307, USA.                                                     *
-    *                                                                        *
-    * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
     header( 'Content-type: text/xml' );
 
     require_once( "include/clsBanco.inc.php" );
@@ -40,21 +16,8 @@
         $db->Consulta( "
         SELECT
             cod_acervo_editora,
-            nm_editora ||
-            CASE WHEN cidade IS NULL OR cidade = ''
-                      THEN  ''
-                 ELSE ' - ' || cidade ||
-                      CASE WHEN bairro IS NULL OR bairro = ''
-                                THEN ''
-                           ELSE ', ' || bairro||
-                            CASE WHEN logradouro IS NULL OR logradouro = ''
-                                      THEN ''
-                                 ELSE ', ' || CASE WHEN ref_idtlog IS NULL OR ref_idtlog = '' THEN '' ELSE initcap(descricao) || ' ' END ||logradouro
-                            END
-                      END
-            END AS nm_editora
+            nm_editora
         FROM pmieducar.acervo_editora
-       LEFT JOIN urbano.tipo_logradouro ON (tipo_logradouro.idtlog = acervo_editora.ref_idtlog)
        WHERE
             ativo = 1
             AND ref_cod_biblioteca = '{$_GET["bib"]}'

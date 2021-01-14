@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Cache;
 require_once 'include/clsBase.inc.php';
 require_once 'include/clsCadastro.inc.php';
 require_once 'include/modules/clsModulesAuditoriaGeral.inc.php';
+require_once 'Portabilis/Utils/CustomLabel.php';
 
 class clsIndexBase extends clsBase
 {
@@ -12,7 +13,6 @@ class clsIndexBase extends clsBase
     {
         $this->SetTitulo($this->_instituicao . ' i-Educar - Configura&ccedil;&otilde;es gerais');
         $this->processoAp = 999873;
-        $this->addEstilo('localizacaoSistema');
     }
 }
 
@@ -168,10 +168,10 @@ class indice extends clsCadastro
         $options = [
             'label' => 'Modelo do boletim do professor',
             'resources' => [
-                1 => 'Modelo padrão',
-                2 => 'Modelo recuperação por etapa',
-                3 => 'Modelo recuperação paralela',
-                ],
+                1 => _cl('report.boletim_professor.modelo_padrao'),
+                2 => _cl('report.boletim_professor.modelo_recuperacao_por_etapa'),
+                3 => _cl('report.boletim_professor.modelo_recuperacao_paralela'),
+            ],
             'value' => $this->modelo_boletim_professor
         ];
         $this->inputsHelper()->select('modelo_boletim_professor', $options);

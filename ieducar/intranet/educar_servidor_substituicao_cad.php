@@ -49,7 +49,6 @@ class clsIndexBase extends clsBase
   {
     $this->SetTitulo($this->_instituicao . ' Servidores - Servidor Substituição');
     $this->processoAp = 635;
-    $this->addEstilo('localizacaoSistema');
   }
 }
 
@@ -139,7 +138,7 @@ class indice extends clsCadastro
       $this->ref_cod_servidor, $this->ref_ref_cod_instituicao);
     $this->nome_url_cancelar = 'Cancelar';
 
-    $this->breadcrumb('Substituir servidor', [
+    $this->breadcrumb('Registro de substituição do servidor', [
         url('intranet/educar_servidores_index.php') => 'Servidores',
     ]);
 
@@ -155,7 +154,6 @@ class indice extends clsCadastro
     $this->campoOculto('ref_ref_cod_instituicao', $this->ref_ref_cod_instituicao);
 
     $opcoes = array('' => 'Selecione');
-    if (class_exists('clsPmieducarServidor')) {
       $objTemp = new clsPmieducarServidor($this->ref_cod_servidor);
       $det = $objTemp->detalhe();
       if ($det) {
@@ -169,7 +167,6 @@ class indice extends clsCadastro
         $detalhePessoa = $objPessoa->detalhe();
         $nm_servidor = $detalhePessoa['nome'];
       }
-    }
 
     $this->campoRotulo('nm_servidor', 'Servidor', $nm_servidor);
 

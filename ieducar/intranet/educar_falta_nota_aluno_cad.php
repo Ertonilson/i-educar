@@ -1,29 +1,5 @@
 <?php
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-    *                                                                        *
-    *   @author Prefeitura Municipal de Itajaí                               *
-    *   @updated 29/03/2007                                                  *
-    *   Pacote: i-PLB Software Público Livre e Brasileiro                    *
-    *                                                                        *
-    *   Copyright (C) 2006  PMI - Prefeitura Municipal de Itajaí             *
-    *                       ctima@itajai.sc.gov.br                           *
-    *                                                                        *
-    *   Este  programa  é  software livre, você pode redistribuí-lo e/ou     *
-    *   modificá-lo sob os termos da Licença Pública Geral GNU, conforme     *
-    *   publicada pela Free  Software  Foundation,  tanto  a versão 2 da     *
-    *   Licença   como  (a  seu  critério)  qualquer  versão  mais  nova.    *
-    *                                                                        *
-    *   Este programa  é distribuído na expectativa de ser útil, mas SEM     *
-    *   QUALQUER GARANTIA. Sem mesmo a garantia implícita de COMERCIALI-     *
-    *   ZAÇÃO  ou  de ADEQUAÇÃO A QUALQUER PROPÓSITO EM PARTICULAR. Con-     *
-    *   sulte  a  Licença  Pública  Geral  GNU para obter mais detalhes.     *
-    *                                                                        *
-    *   Você  deve  ter  recebido uma cópia da Licença Pública Geral GNU     *
-    *   junto  com  este  programa. Se não, escreva para a Free Software     *
-    *   Foundation,  Inc.,  59  Temple  Place,  Suite  330,  Boston,  MA     *
-    *   02111-1307, USA.                                                     *
-    *                                                                        *
-    * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 require_once ("include/clsBase.inc.php");
 require_once ("include/clsCadastro.inc.php");
 require_once ("include/clsBanco.inc.php");
@@ -1173,27 +1149,13 @@ class indice extends clsCadastro
                     $det_escola = $obj_escola->detalhe();
                     $ref_idpes = $det_escola["ref_idpes"];
                     // busca informacoes da escola
-                    if ($ref_idpes)
+                    $obj_escola = new clsPessoaJuridica($ref_idpes);
+                    $det_escola = $obj_escola->detalhe();
+                    $nm_escola = $det_escola["fantasia"];
+                    if($det_escola)
                     {
-                        $obj_escola = new clsPessoaJuridica($ref_idpes);
-                        $det_escola = $obj_escola->detalhe();
-                        $nm_escola = $det_escola["fantasia"];
-                        if($det_escola)
-                        {
-                            $cidade = $det_escola["cidade"];
-                            $uf = $det_escola["sigla_uf"];
-                        }
-                    }
-                    else
-                    {
-                        if ( class_exists( "clsPmieducarEscolaComplemento" ) )
-                        {
-                            $obj_escola = new clsPmieducarEscolaComplemento( $this->ref_ref_cod_escola );
-                            $det_escola = $obj_escola->detalhe();
-
-                            $nm_escola = $det_escola["nm_escola"];
-                            $cidade = $det_escola["municipio"];
-                        }
+                        $cidade = $det_escola["cidade"];
+                        $uf = $det_escola["sigla_uf"];
                     }
                     if ($this->padrao_ano_escolar)
                     {
@@ -1262,7 +1224,7 @@ class indice extends clsCadastro
             }
 
             $this->mensagem = "Edi&ccedil;&atilde;o n&atilde;o realizada (Matr&iacute;cula).<br>";
-            echo "<!--\nErro ao editar clsPmieducarMatricula\nvalores obrigatorios\nis_numeric( $this->ref_cod_matricula ) && is_numeric( $this->pessoa_logada ) && is_numeric( $this->modulo )\n-->";
+
             return false;
         }
     //************************************* CADASTRA - MATRICULADO NUM CURSO *************************************//
@@ -1601,7 +1563,7 @@ class indice extends clsCadastro
                 $this->simpleRedirect("educar_falta_nota_aluno_det.php?ref_cod_matricula={$this->ref_cod_matricula}&ref_cod_turma={$this->ref_cod_turma}&sequencial={$this->ref_sequencial_matricula_turma}");
             }
             $this->mensagem = "Edi&ccedil;&atilde;o n&atilde;o realizada (Matr&iacute;cula).<br>";
-            echo "<!--\nErro ao editar clsPmieducarMatricula\nvalores obrigatorios\nis_numeric( $this->ref_cod_matricula ) && is_numeric( $this->pessoa_logada ) && is_numeric( $this->modulo )\n-->";
+
             return false;
         }
     }
@@ -2067,27 +2029,13 @@ class indice extends clsCadastro
                     $det_escola = $obj_escola->detalhe();
                     $ref_idpes = $det_escola["ref_idpes"];
                     // busca informacoes da escola
-                    if ($ref_idpes)
+                    $obj_escola = new clsPessoaJuridica($ref_idpes);
+                    $det_escola = $obj_escola->detalhe();
+                    $nm_escola = $det_escola["fantasia"];
+                    if($det_escola)
                     {
-                        $obj_escola = new clsPessoaJuridica($ref_idpes);
-                        $det_escola = $obj_escola->detalhe();
-                        $nm_escola = $det_escola["fantasia"];
-                        if($det_escola)
-                        {
-                            $cidade = $det_escola["cidade"];
-                            $uf = $det_escola["sigla_uf"];
-                        }
-                    }
-                    else
-                    {
-                        if ( class_exists( "clsPmieducarEscolaComplemento" ) )
-                        {
-                            $obj_escola = new clsPmieducarEscolaComplemento( $this->ref_ref_cod_escola );
-                            $det_escola = $obj_escola->detalhe();
-
-                            $nm_escola = $det_escola["nm_escola"];
-                            $cidade = $det_escola["municipio"];
-                        }
+                        $cidade = $det_escola["cidade"];
+                        $uf = $det_escola["sigla_uf"];
                     }
 
                     if ($this->padrao_ano_escolar)
@@ -2182,7 +2130,7 @@ class indice extends clsCadastro
                 $this->simpleRedirect("educar_falta_nota_aluno_det.php?ref_cod_matricula={$this->ref_cod_matricula}&ref_cod_turma={$this->ref_cod_turma}&sequencial={$this->ref_sequencial_matricula_turma}");
             }
             $this->mensagem = "Edi&ccedil;&atilde;o n&atilde;o realizada (Matr&iacute;cula).<br>";
-            echo "<!--\nErro ao editar clsPmieducarMatricula\nvalores obrigatorios\nis_numeric( $this->ref_cod_matricula ) && is_numeric( $this->pessoa_logada ) && is_numeric( $this->modulo )\n-->";
+
             return false;
         }
     //************************************* EDITA - MATRICULADO NUM CURSO *************************************//
@@ -2578,7 +2526,7 @@ class indice extends clsCadastro
                 $this->simpleRedirect("educar_falta_nota_aluno_det.php?ref_cod_matricula={$this->ref_cod_matricula}&ref_cod_turma={$this->ref_cod_turma}&sequencial={$this->ref_sequencial_matricula_turma}");
             }
             $this->mensagem = "Edi&ccedil;&atilde;o n&atilde;o realizada (Matr&iacute;cula).<br>";
-            echo "<!--\nErro ao editar clsPmieducarMatricula\nvalores obrigatorios\nis_numeric( $this->ref_cod_matricula ) && is_numeric( $this->pessoa_logada ) && is_numeric( $this->modulo )\n-->";
+
             return false;
         }
     }
@@ -2587,11 +2535,6 @@ class indice extends clsCadastro
     {
         if ( is_array($this->disciplina_modulo) )
         {
-
-//              $obj = new clsPmieducarNotaAluno();
-//              $lst_obj = $obj->lista( null, null, $this->ref_cod_tipo_avaliacao, $this->ref_ref_cod_serie, $this->ref_ref_cod_escola, null, $this->ref_cod_matricula, null, null, null, null, null, null, 1, $this->modulo );
-//              if (!is_array($lst_obj) && count($lst_obj))
-//              {
                 foreach ( $this->disciplina_modulo AS $avaliacao )
                 {
                     if( is_numeric($avaliacao["nota"]) )
@@ -2609,7 +2552,6 @@ class indice extends clsCadastro
                     if( is_numeric($avaliacao["nota"]) )
                     {
                         $cadastrou = $obj->cadastra();
-//                  if( $cadastrou && ($this->situacao != 7) )
                         if( $cadastrou && ($this->qtd_modulos >= $this->modulo) )
                         {
                             if ( !$this->falta_ch_globalizada && is_numeric($avaliacao["faltas"]) )
@@ -2619,7 +2561,7 @@ class indice extends clsCadastro
                                 if( !$cadastrou1 )
                                 {
                                     $this->mensagem = "Cadastro n&atilde;o realizado.<br>";
-                                    echo "<!--\nErro ao cadastrar clsPmieducarFaltaAluno\nvalores obrigatorios\nis_numeric( $this->pessoa_logada ) && is_numeric( $this->ref_ref_cod_serie ) && is_numeric( $this->ref_ref_cod_escola ) && is_numeric( {$avaliacao["ref_cod_disciplina"]} ) && is_numeric( $this->ref_cod_matricula ) && is_numeric( {$avaliacao["faltas"]} ) )\n-->";
+
                                     return false;
                                 }
                             }
@@ -2627,7 +2569,7 @@ class indice extends clsCadastro
                         elseif ( !$cadastrou )
                         {
                             $this->mensagem = "Cadastro n&atilde;o realizado.<br>";
-                            echo "<!--\nErro ao cadastrar clsPmieducarNotaAluno\nvalores obrigatorios\nis_numeric( {$avaliacao["nota"]} ) && is_numeric( $this->ref_cod_tipo_avaliacao ) && is_numeric( $this->ref_ref_cod_serie ) && is_numeric( $this->ref_ref_cod_escola ) && is_numeric( {$avaliacao["ref_cod_disciplina"]} ) && is_numeric( $this->ref_cod_matricula ) && is_numeric( $this->pessoa_logada )\n-->";
+
                             return false;
                         }
                     }
@@ -2647,11 +2589,10 @@ class indice extends clsCadastro
                     if( !$cadastrou1 )
                     {
                         $this->mensagem = "Cadastro n&atilde;o realizado.<br>";
-                        echo "<!--\nErro ao cadastrar clsPmieducarFaltas\nvalores obrigatorios\nis_numeric( $this->ref_cod_matricula ) && is_numeric( $this->modulo ) && is_numeric( $this->pessoa_logada ) && is_numeric( $this->total_faltas )\n-->";
+
                         return false;
                     }
                 }
-//              }
         }
         else
         {
@@ -2664,10 +2605,6 @@ class indice extends clsCadastro
     {
         if ( is_array($this->disciplina_modulo) )
         {
-//              $obj = new clsPmieducarNotaAluno();
-//              $lst_obj = $obj->lista( null, null, $this->ref_cod_tipo_avaliacao, $this->ref_ref_cod_serie, $this->ref_ref_cod_escola, null, $this->ref_cod_matricula, null, null, null, null, null, null, 1, $this->modulo );
-//              if (!is_array($lst_obj) && count($lst_obj))
-//              {
                 foreach ( $this->disciplina_modulo AS $avaliacao )
                 {
                     if( is_numeric($avaliacao["nota"]) )
@@ -2693,7 +2630,7 @@ class indice extends clsCadastro
                                 if( !$cadastrou1 )
                                 {
                                     $this->mensagem = "Cadastro n&atilde;o realizado.<br>";
-                                    echo "<!--\nErro ao cadastrar clsPmieducarFaltaAluno\nvalores obrigatorios\nis_numeric( $this->pessoa_logada ) && is_numeric( {$avaliacao["ref_cod_disciplina"]} ) && is_numeric( $this->ref_cod_matricula ) && is_numeric( {$avaliacao["faltas"]} ) )\n-->";
+
                                     return false;
                                 }
                             }
@@ -2701,7 +2638,7 @@ class indice extends clsCadastro
                         elseif ( !$cadastrou )
                         {
                             $this->mensagem = "Cadastro n&atilde;o realizado.<br>";
-                            echo "<!--\nErro ao cadastrar clsPmieducarNotaAluno\nvalores obrigatorios\nis_numeric( {$avaliacao["nota"]} ) && is_numeric( $this->ref_cod_tipo_avaliacao ) && is_numeric( {$avaliacao["ref_cod_disciplina"]} ) && is_numeric( $this->ref_cod_matricula ) && is_numeric( $this->pessoa_logada )\n-->";
+
                             return false;
                         }
                     }
@@ -2713,11 +2650,10 @@ class indice extends clsCadastro
                     if( !$cadastrou1 )
                     {
                         $this->mensagem = "Cadastro n&atilde;o realizado.<br>";
-                        echo "<!--\nErro ao cadastrar clsPmieducarFaltas\nvalores obrigatorios\nis_numeric( $this->ref_cod_matricula ) && is_numeric( $this->modulo ) && is_numeric( $this->pessoa_logada ) && is_numeric( $this->total_faltas )\n-->";
+
                         return false;
                     }
                 }
-//              }
         }
         else
         {
@@ -2762,7 +2698,7 @@ class indice extends clsCadastro
                     if (!$editou_nota)
                     {
                         $this->mensagem = "Edi&ccedil;&atilde;o n&atilde;o realizada.<br>";
-                        echo "<!--\nErro ao editar clsPmieducarNotaAluno\nvalores obrigatorios\nis_numeric( {$avaliacao['cod_nota_aluno']} ) && is_numeric( $this->pessoa_logada ) \n-->";
+
                         return false;
                     }
                 }
@@ -2788,7 +2724,7 @@ class indice extends clsCadastro
                         if (!$cadastrou_nota)
                         {
                             $this->mensagem = "Cadastro n&atilde;o realizado.<br>";
-                            echo "<!--\nErro ao cadastrar clsPmieducarNotaAluno\nvalores obrigatorios\nis_numeric( $this->pessoa_logada ) && is_numeric( $this->ref_ref_cod_serie ) && is_numeric( $this->ref_ref_cod_escola ) && is_numeric( {$avaliacao["ref_cod_disciplina"]} ) && is_numeric( $this->ref_cod_matricula ) && is_numeric( {$avaliacao["nota"]} ) && is_numeric( {$this->modulo} )\n-->";
+
                             return false;
                         }
                     }
@@ -2804,7 +2740,7 @@ class indice extends clsCadastro
                         if (!$editou_falta)
                         {
                             $this->mensagem = "Edi&ccedil;&atilde;o n&atilde;o realizada.<br>";
-                            echo "<!--\nErro ao editar clsPmieducarFaltaAluno\nvalores obrigatorios\nis_numeric( {$avaliacao['cod_falta_aluno']} ) && is_numeric( $this->pessoa_logada ) \n-->";
+
                             return false;
                         }
                     }
@@ -2817,7 +2753,7 @@ class indice extends clsCadastro
                             if( !$cadastrou_falta )
                             {
                                 $this->mensagem = "Cadastro n&atilde;o realizado.<br>";
-                                echo "<!--\nErro ao cadastrar clsPmieducarFaltaAluno\nvalores obrigatorios\nis_numeric( $this->pessoa_logada ) && is_numeric( $this->ref_ref_cod_serie ) && is_numeric( $this->ref_ref_cod_escola ) && is_numeric( {$avaliacao["ref_cod_disciplina"]} ) && is_numeric( $this->ref_cod_matricula ) && is_numeric( {$avaliacao["faltas"]} ) && is_numeric( {$this->modulo} )\n-->";
+
                                 return false;
                             }
                         }
@@ -2835,7 +2771,7 @@ class indice extends clsCadastro
                     if (!$editou_faltas)
                     {
                         $this->mensagem = "Edi&ccedil;&atilde;o n&atilde;o realizada.<br>";
-                        echo "<!--\nErro ao editar clsPmieducarFaltas\nvalores obrigatorios\nis_numeric( $this->ref_cod_matricula ) && is_numeric( $this->modulo ) && is_numeric( $this->total_faltas )\n-->";
+
                         return false;
                     }
                 }
@@ -2847,7 +2783,7 @@ class indice extends clsCadastro
                     if( !$cadastrou_faltas )
                     {
                         $this->mensagem = "Cadastro n&atilde;o realizado.<br>";
-                        echo "<!--\nErro ao cadastrar clsPmieducarFaltas\nvalores obrigatorios\nis_numeric( $this->ref_cod_matricula ) && is_numeric( $this->modulo ) && is_numeric( $this->pessoa_logada ) && is_numeric( $this->total_faltas )\n-->";
+
                         return false;
                     }
 
@@ -2889,7 +2825,7 @@ class indice extends clsCadastro
                     if (!$editou_nota)
                     {
                         $this->mensagem = "Edi&ccedil;&atilde;o n&atilde;o realizada.<br>";
-                        echo "<!--\nErro ao editar clsPmieducarNotaAluno\nvalores obrigatorios\nis_numeric( {$avaliacao['cod_nota_aluno']} ) && is_numeric( $this->pessoa_logada ) \n-->";
+
                         return false;
                     }
                 }
@@ -2911,7 +2847,7 @@ class indice extends clsCadastro
                         if (!$cadastrou_nota)
                         {
                             $this->mensagem = "Cadastro n&atilde;o realizado.<br>";
-                            echo "<!--\nErro ao cadastrar clsPmieducarNotaAluno\nvalores obrigatorios\nis_numeric( $this->pessoa_logada ) && is_numeric( $this->ref_ref_cod_serie ) && is_numeric( $this->ref_ref_cod_escola ) && is_numeric( {$avaliacao["ref_cod_disciplina"]} ) && is_numeric( $this->ref_cod_matricula ) && is_numeric( {$avaliacao["nota"]} ) && is_numeric( {$this->modulo} )\n-->";
+
                             return false;
                         }
                     }
@@ -2928,7 +2864,7 @@ class indice extends clsCadastro
                         if (!$editou_falta)
                         {
                             $this->mensagem = "Edi&ccedil;&atilde;o n&atilde;o realizada.<br>";
-                            echo "<!--\nErro ao editar clsPmieducarFaltaAluno\nvalores obrigatorios\nis_numeric( {$avaliacao['cod_falta_aluno']} ) && is_numeric( $this->pessoa_logada ) \n-->";
+
                             return false;
                         }
                     }
@@ -2939,7 +2875,7 @@ class indice extends clsCadastro
                         if( !$cadastrou_falta )
                         {
                             $this->mensagem = "Cadastro n&atilde;o realizado.<br>";
-                            echo "<!--\nErro ao cadastrar clsPmieducarFaltaAluno\nvalores obrigatorios\nis_numeric( $this->pessoa_logada ) && is_numeric( $this->ref_ref_cod_serie ) && is_numeric( $this->ref_ref_cod_escola ) && is_numeric( {$avaliacao["ref_cod_disciplina"]} ) && is_numeric( $this->ref_cod_matricula ) && is_numeric( {$avaliacao["faltas"]} ) && is_numeric( {$this->modulo} )\n-->";
+
                             return false;
                         }
                     }
@@ -2956,7 +2892,7 @@ class indice extends clsCadastro
                     if (!$editou_faltas)
                     {
                         $this->mensagem = "Edi&ccedil;&atilde;o n&atilde;o realizada.<br>";
-                        echo "<!--\nErro ao editar clsPmieducarFaltas\nvalores obrigatorios\nis_numeric( $this->ref_cod_matricula ) && is_numeric( $this->modulo ) && is_numeric( $this->total_faltas )\n-->";
+
                         return false;
                     }
                 }
@@ -2967,7 +2903,7 @@ class indice extends clsCadastro
                     if( !$cadastrou_faltas )
                     {
                         $this->mensagem = "Cadastro n&atilde;o realizado.<br>";
-                        echo "<!--\nErro ao cadastrar clsPmieducarFaltas\nvalores obrigatorios\nis_numeric( $this->ref_cod_matricula ) && is_numeric( $this->modulo ) && is_numeric( $this->pessoa_logada ) && is_numeric( $this->total_faltas )\n-->";
+
                         return false;
                     }
                 }

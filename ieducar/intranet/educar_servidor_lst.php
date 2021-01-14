@@ -14,7 +14,6 @@ class clsIndexBase extends clsBase
     {
         $this->SetTitulo($this->_instituicao . ' i-Educar - Servidor');
         $this->processoAp = 635;
-        $this->addEstilo('localizacaoSistema');
     }
 }
 
@@ -65,6 +64,7 @@ class indice extends clsListagem
         $parametros->setSubmit(0);
         $this->campoTexto('nome', 'Nome do servidor', $this->nome, 50, 255, false);
         $this->campoTexto('matricula_servidor', 'Matrícula', $this->matricula_servidor, 50, 255, false);
+        $this->inputsHelper()->dynamic('escolaridade', ['required' => false]);
         $this->campoCheck('servidor_sem_alocacao', 'Incluir servidores sem alocação', isset($_GET['servidor_sem_alocacao']));
 
         // Paginador
@@ -72,6 +72,10 @@ class indice extends clsListagem
         $this->offset = ($_GET['pagina_' . $this->nome])
             ? $_GET['pagina_' . $this->nome] * $this->limite - $this->limite
             : 0;
+
+        if (!$this->ref_idesco && $_GET['idesco']) {
+            $this->ref_idesco = $_GET['idesco'];
+        }
 
         $obj_servidor = new clsPmieducarServidor();
         $obj_servidor->setOrderby('carga_horaria ASC');
@@ -132,7 +136,7 @@ class indice extends clsListagem
             foreach ($lista as $registro) {
                 $registro['ref_cod_instituicao'] = $det_ref_cod_instituicao['nm_instituicao'];
                 $registro['cpf'] = int2CPF($cpfs[$registro['cod_servidor']]);
-                
+
                 $path = 'educar_servidor_det.php';
                 $options = [
                     'query' => [
@@ -160,7 +164,7 @@ class indice extends clsListagem
 
         $this->largura = '100%';
 
-        $this->breadcrumb('Servidores', [
+        $this->breadcrumb('Funções do servidor', [
             url('intranet/educar_servidores_index.php') => 'Servidores',
         ]);
     }

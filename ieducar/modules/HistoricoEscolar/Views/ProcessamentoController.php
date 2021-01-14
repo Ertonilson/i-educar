@@ -19,8 +19,6 @@ class ProcessamentoController extends Portabilis_Controller_Page_ListController
 
         parent::_preRender();
 
-        Portabilis_View_Helper_Application::loadStylesheet($this, 'intranet/styles/localizacaoSistema.css');
-
         $localizacao = new LocalizacaoSistema();
 
         $localizacao->entradaCaminhos(
@@ -119,6 +117,8 @@ class ProcessamentoController extends Portabilis_Controller_Page_ListController
                         <option value='aprovado'>Aprovado</option>
                         <option value='reprovado'>Reprovado</option>
                         <option value='transferido'>Transferido</option>
+                        <option value='reclassificado'>Reclassificado</option>
+                        <option value='abandono'>Abandono</option>
                     </select>
                 </td>
             </tr>
@@ -183,7 +183,7 @@ class ProcessamentoController extends Portabilis_Controller_Page_ListController
                 </td>
                 <td><input id='faltas-manual' name='faltas-manual' style='display:none;'></input></td>
             </tr>
-            
+
             <tr id='tr-area-conhecimento'>
                 <td><label for='area-conhecimento'>Area Conhecimento </label></td>
                 <td>

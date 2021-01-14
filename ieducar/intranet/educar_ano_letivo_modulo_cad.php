@@ -19,7 +19,6 @@ class clsIndexBase extends clsBase
     {
         $this->SetTitulo($this->_instituicao . ' Ano Letivo Etapa');
         $this->processoAp = 561;
-        $this->addEstilo('localizacaoSistema');
     }
 }
 
@@ -180,7 +179,6 @@ class indice extends clsCadastro
 
         $opcoesCampoModulo = [];
 
-        if (class_exists('clsPmieducarModulo')) {
             $objTemp = new clsPmieducarModulo();
             $objTemp->setOrderby('nm_tipo ASC');
 
@@ -207,9 +205,6 @@ class indice extends clsCadastro
                     $opcoesCampoModulo[$registro['cod_modulo']] = sprintf('%s - %d etapa(s)', $registro['nm_tipo'], $registro['num_etapas']);
                 }
             }
-        } else {
-            $opcoesCampoModulo = ['' => 'Erro na geração'];
-        }
 
         $this->campoLista(
             'ref_cod_modulo',
@@ -540,6 +535,7 @@ class indice extends clsCadastro
                 'visivel',
                 'turma_turno_id',
                 'tipo_boletim',
+                'tipo_boletim_diferenciado',
                 'ano',
                 'dias_semana',
                 'atividades_complementares',
@@ -550,7 +546,7 @@ class indice extends clsCadastro
                 'cod_curso_profissional',
                 'tipo_mediacao_didatico_pedagogico',
                 'nao_informar_educacenso',
-                'turma_mais_educacao'
+                'local_funcionamento_diferenciado'
             ];
 
             $turmaDestino = new clsPmieducarTurma();
@@ -562,6 +558,7 @@ class indice extends clsCadastro
             $turmaDestino->ano = $anoDestino;
             $turmaDestino->ref_usuario_cad = $this->pessoa_logada;
             $turmaDestino->ref_usuario_exc = $this->pessoa_logada;
+            $turmaDestino->visivel = dbBool($turmaOrigem['visivel']);
             $turmaDestinoId = $turmaDestino->cadastra();
 
             $this->copiarComponenteCurricularTurma($turmaOrigem['cod_turma'], $turmaDestinoId);
@@ -697,10 +694,20 @@ class indice extends clsCadastro
             throw new RuntimeException('Não foi possível remover uma das etapas pois existem notas ou faltas lançadas.');
         }
 
+        // Caso não exista token e URL de integração com o i-Diário, não irá
+        // validar se há lançamentos nas etapas removidas
+
+        $checkReleases = config('legacy.config.url_novo_educacao')
+            && config('legacy.config.token_novo_educacao');
+
+        if (!$checkReleases) {
+            return true;
+        }
+
         $iDiarioService = app(iDiarioService::class);
 
         foreach ($etapas as $etapa) {
-            if ($iDiarioService->getStepActivityByUnit($escolaId, $etapa)) {
+            if ($iDiarioService->getStepActivityByUnit($escolaId, $ano, $etapa)) {
                 throw new RuntimeException('Não foi possível remover uma das etapas pois existem notas ou faltas lançadas no diário online.');
             }
         }

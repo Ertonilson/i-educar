@@ -123,7 +123,7 @@ var handleGetMatriculas = function(dataResponse) {
       }
 
       if($j('#can_show_dependencia').val() == 1){
-        var dependencia = matricula.dependencia == 't' ? 'Sim' : stringUtils.toUtf8('Não');
+        var dependencia = matricula.dependencia ? 'Sim' : stringUtils.toUtf8('Não');
         $j('<td>').html(dependencia).appendTo($tr);
       }
 
@@ -329,6 +329,18 @@ if(participa_projetos){
   });
 }
 
+jQuery(document).ready(function () {
+  jQuery('.rotate-picture').click(function () {
+    jQuery.post('/api/students/' + jQuery('#aluno_id').val() + '/rotate-picture', {
+      url: jQuery('#student-picture').attr('src'),
+      angle: jQuery(this).attr('data-angle'),
+    }).done(function (res) {
+      jQuery('#student-picture').attr('src', res.url);
+    }).fail(function () {
+      alert('Não foi possível girar a imagem.');
+    });
+  });
+});
 
 // when page is ready
 $j(document).ready(function() {

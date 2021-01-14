@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\LegacySchool;
+
 require_once 'lib/Portabilis/Controller/ApiCoreController.php';
 require_once 'Portabilis/Array/Utils.php';
 require_once 'include/clsBase.inc.php';
@@ -141,12 +143,24 @@ class EscolaController extends ApiCoreController
     {
         if ($this->canGetEtapasPorEscola()) {
             $ano = $this->getRequest()->ano ? $this->getRequest()->ano : 0;
+            $escola = $this->getRequest()->escola;
 
-            $sql = '
+            $where = '';
+
+            if ($escola) {
+                if (is_array($escola)) {
+                    $escola = implode(',', $escola);
+                }
+
+                $where = " AND eal.ref_cod_escola in ({$escola})";
+            }
+
+            $sql = "
                 select distinct 
                     ref_cod_escola as escola_id,
                     ano as ano, 
-                    m.nm_tipo as descricao
+                    m.nm_tipo as descricao,
+                    andamento as ano_em_aberto
                 from pmieducar.escola_ano_letivo eal
                 inner join pmieducar.ano_letivo_modulo alm
                     on true 
@@ -158,19 +172,35 @@ class EscolaController extends ApiCoreController
                 where true 
                     and (
                         case when $1 = 0 then 
-                            true 
+                            (
+                                andamento = 1
+                                or 
+                                ano in (
+                                    select ano 
+                                    from pmieducar.escola_ano_letivo 
+                                    where ref_cod_escola = eal.ref_cod_escola 
+                                    order by ano desc 
+                                    limit 2
+                                )
+                            ) 
                         else 
                             ano = $1 
                         end
                     )
-                and andamento = 1
+                {$where} 
                 order by ref_cod_escola, ano
-            ';
+            ";
 
             $anosLetivos = $this->fetchPreparedQuery($sql, [$ano]);
 
-            $attrs = ['escola_id', 'ano', 'descricao'];
+            $attrs = ['escola_id', 'ano', 'descricao', 'ano_em_aberto'];
             $anosLetivos = Portabilis_Array_Utils::filterSet($anosLetivos, $attrs);
+
+            $anosLetivos = array_map(function ($ano) {
+                $ano['ano_em_aberto'] = $ano['ano_em_aberto'] == 1;
+
+                return $ano;
+            }, $anosLetivos);
 
             foreach ($anosLetivos as $index => $anoLetivo) {
                 $anosLetivos[$index] = array_merge($anosLetivos[$index], $this->getEtapasAnoEscola($anoLetivo['ano'], $anoLetivo['escola_id']));
@@ -185,7 +215,8 @@ class EscolaController extends ApiCoreController
     {
         $sql = 'SELECT sequencial AS etapa,
                        data_inicio,
-                       data_fim
+                       data_fim,
+                       dias_letivos
                   FROM pmieducar.ano_letivo_modulo
                  WHERE ref_ano = $1
                    AND ref_ref_cod_escola = $2
@@ -193,10 +224,40 @@ class EscolaController extends ApiCoreController
 
         $etapas = [];
         $etapas = $this->fetchPreparedQuery($sql, [$ano, $escola]);
-        $attrs = ['etapa', 'data_inicio', 'data_fim'];
+        $attrs = ['etapa', 'data_inicio', 'data_fim', 'dias_letivos'];
         $etapas = Portabilis_Array_Utils::filterSet($etapas, $attrs);
 
         return ['etapas' => $etapas];
+    }
+
+    private function getModuloDaEscola($ano, $escola)
+    {
+        $sql = '
+            SELECT max(ref_cod_modulo) as modulo
+            FROM pmieducar.ano_letivo_modulo
+            WHERE ref_ano = $1
+            AND ref_ref_cod_escola = $2
+        ';
+        $modulo = $this->fetchPreparedQuery($sql, [$ano, $escola], false, 'first-line');
+
+        return $modulo['modulo'];
+    }
+
+    protected function getEtapasDaEscolaPorAno()
+    {
+        if ($this->canGetEtapasDaEscolaPorAno()) {
+            $ano = $this->getRequest()->ano;
+            $escolaId = $this->getRequest()->escola_id;
+            $dadosDasEtapas = $this->getEtapasAnoEscola($ano, $escolaId);
+            $dadosDasEtapas['modulo'] = $this->getModuloDaEscola($ano, $escolaId);
+
+            return $dadosDasEtapas;
+        }
+    }
+
+    protected function canGetEtapasDaEscolaPorAno()
+    {
+        return $this->validatesPresenceOf('ano') && $this->validatesPresenceOf('escola_id');
     }
 
     private function getEtapasTurmasAnoEscola($ano, $escola)
@@ -438,13 +499,13 @@ class EscolaController extends ApiCoreController
     {
         $sql = ' SELECT escola.cod_escola as cod_escola,
           juridica.fantasia as nome,
-          coalesce(endereco_pessoa.cep, endereco_externo.cep) as cep,
-          coalesce(endereco_pessoa.numero, endereco_externo.numero) as numero,
-          coalesce(endereco_pessoa.complemento, endereco_externo.complemento) as complemento,
-          coalesce(logradouro.nome,endereco_externo.logradouro) as logradouro,
-          coalesce(bairro.nome, endereco_externo.bairro) as bairro,
-          coalesce(municipio.nome, endereco_externo.cidade) as municipio,
-          coalesce(uf.sigla_uf, endereco_externo.sigla_uf) as uf,
+          endereco_pessoa.cep as cep,
+          endereco_pessoa.numero as numero,
+          endereco_pessoa.complemento as complemento,
+          logradouro.nome as logradouro,
+          bairro.nome as bairro,
+          municipio.nome as municipio,
+          uf.sigla_uf as uf,
           pais.nome as pais,
           pessoa.email as email,
           fone_pessoa.ddd as ddd,
@@ -457,7 +518,6 @@ class EscolaController extends ApiCoreController
          left join cadastro.pessoa pessoa_responsavel on(escola.ref_idpes_gestor = pessoa_responsavel.idpes)
          left join cadastro.fone_pessoa on(fone_pessoa.idpes = pessoa.idpes and fone_pessoa.tipo = 1)
          left join cadastro.endereco_pessoa on(escola.ref_idpes = endereco_pessoa.idpes)
-         left join cadastro.endereco_externo on(escola.ref_idpes = endereco_externo.idpes)
          left join public.logradouro on(endereco_pessoa.idlog = logradouro.idlog)
          left join public.municipio on(logradouro.idmun = municipio.idmun)
          left join public.uf on(municipio.sigla_uf = uf.sigla_uf)
@@ -605,6 +665,34 @@ class EscolaController extends ApiCoreController
         return ['options' => $escolas];
     }
 
+    /**
+     * Retorna os parâmetros das escolas.
+     *
+     *  - cod_escola
+     *  - utiliza_regra_diferenciada
+     *  - updated_at
+     *
+     * A query string "modified" pode ser informada para limitar os registros
+     * por data.
+     *
+     * @return array
+     */
+    protected function getParametrosEscolas()
+    {
+        $modified = request('modified');
+
+        $schools = LegacySchool::query()
+            ->select(['cod_escola', 'utiliza_regra_diferenciada', 'updated_at'])
+            ->when($modified, function ($query) use ($modified) {
+                return $query->where('updated_at', '>=', $modified);
+            })
+            ->get();
+
+        return [
+            'escolas' => $schools,
+        ];
+    }
+
     public function Gerar()
     {
         if ($this->isRequestFor('get', 'escola')) {
@@ -617,6 +705,8 @@ class EscolaController extends ApiCoreController
             $this->appendResponse($this->getEscolas());
         } elseif ($this->isRequestFor('get', 'etapas-por-escola')) {
             $this->appendResponse($this->getEtapasPorEscola());
+        } elseif ($this->isRequestFor('get', 'etapas-da-escola-por-ano')) {
+            $this->appendResponse($this->getEtapasDaEscolaPorAno());
         } elseif ($this->isRequestFor('get', 'info-escolas')) {
             $this->appendResponse($this->getInformacaoEscolas());
         } elseif ($this->isRequestFor('get', 'escolas-multiple-search')) {
@@ -629,6 +719,8 @@ class EscolaController extends ApiCoreController
             $this->appendResponse($this->getEscolasUsuarios());
         } elseif ($this->isRequestFor('get', 'escolas-para-selecao')) {
             $this->appendResponse($this->getEscolasSelecao());
+        } elseif ($this->isRequestFor('get', 'parametros-escolas')) {
+            $this->appendResponse($this->getParametrosEscolas());
         } else {
             $this->notImplementedOperationError();
         }

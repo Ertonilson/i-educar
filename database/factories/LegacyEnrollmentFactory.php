@@ -5,6 +5,9 @@ use App\Models\LegacyRegistration;
 use App\Models\LegacySchoolClass;
 use App\Models\LegacyUser;
 use Faker\Generator as Faker;
+use Illuminate\Database\Eloquent\Factory;
+
+/** @var Factory $factory */
 
 $factory->define(LegacyEnrollment::class, function (Faker $faker) {
     return [
@@ -15,4 +18,20 @@ $factory->define(LegacyEnrollment::class, function (Faker $faker) {
         'data_cadastro' => now(),
         'data_enturmacao' => now(),
     ];
+});
+
+$factory->defineAs(LegacyEnrollment::class, 'active', function (Faker $faker) use ($factory) {
+    $enrollment = $factory->raw(LegacyEnrollment::class);
+
+    return array_merge($enrollment, [
+        'ativo' => 1
+    ]);
+});
+
+$factory->defineAs(LegacyEnrollment::class, 'inactive', function (Faker $faker) use ($factory) {
+    $enrollment = $factory->raw(LegacyEnrollment::class);
+
+    return array_merge($enrollment, [
+        'ativo' => 0
+    ]);
 });

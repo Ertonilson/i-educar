@@ -15,23 +15,34 @@ class Controller extends BaseController
 {
     use AuthorizesRequests, DispatchesJobs, ValidatesRequests;
 
+    protected $beta = false;
+
     /**
      * Set the breadcrumbs of the action
      *
      * @param $currentPage
      * @param array $pages
+     *
+     * @return $this
      */
     public function breadcrumb($currentPage, $pages = [])
     {
-        app(Breadcrumb::class)->current($currentPage, $pages);
+        $breadcrumb = app(Breadcrumb::class)
+            ->current($currentPage, $pages);
+
+        if ($this->beta) {
+            $breadcrumb->addBetaFlag();
+        }
+
+        return $this;
     }
 
     /**
      * Share with view, title, mainmenu and menu links.
-     * 
+     *
      * @param int $process
      *
-     * @return void
+     * @return $this
      */
     public function menu($process)
     {
@@ -48,5 +59,7 @@ class Controller extends BaseController
 
         View::share('menu', $menu);
         View::share('title', '');
+
+        return $this;
     }
 }

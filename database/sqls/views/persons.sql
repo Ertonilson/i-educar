@@ -1,4 +1,4 @@
-CREATE OR REPLACE VIEW persons AS
+CREATE OR REPLACE VIEW public.persons AS
 SELECT
     idpes AS id,
     nome AS name,
@@ -19,7 +19,5 @@ SELECT
         WHEN 'U' THEN 3 -- unificação
         WHEN 'O' THEN 4 -- outro
     END) AS registry_origin
-    -- operacao,
-    -- idsis_rev,
-    -- idsis_cad
+    -- operacao
 FROM cadastro.pessoa;

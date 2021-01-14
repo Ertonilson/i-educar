@@ -4,6 +4,7 @@ $j('td .formdktd').append('<div id="tabControl"><ul><li><div id="tab1" class="tu
 $j('td .formdktd b').remove();
 $j('.tablecadastro td .formdktd div').remove();
 $j('#tab1').addClass('turmaTab-active').removeClass('turmaTab');
+$j('#ref_cod_disciplina_dispensada').css('maxWidth', '600px');
 
 // Atribui um id a linha, para identificar até onde/a partir de onde esconder os campos
 $j('#codigo_inep_educacenso').closest('tr').attr('id','tr_codigo_inep_educacenso');
@@ -198,6 +199,32 @@ $j('#tipo_mediacao_didatico_pedagogico').on('change', function(){
     $j('#dias_semana').prop('disabled', true).val([]).trigger("chosen:updated");
   }
 }).trigger('change');
+
+function buscaEtapasDaEscola() {
+  var urlApi = getResourceUrlBuilder.buildUrl('/module/Api/Escola', 'etapas-da-escola-por-ano', {
+    escola_id : $j('#ref_cod_escola').val(),
+    ano : new Date().getFullYear()
+  });
+
+  var options = {
+    url : urlApi,
+    dataType : 'json',
+    success  : function(dataResponse){
+      $j('#ref_cod_modulo').val(dataResponse.modulo).trigger('change');
+      preencheEtapasNaTurma(dataResponse.etapas);
+    }
+  };
+
+  getResources(options);
+}
+
+function preencheEtapasNaTurma(etapas) {
+  $j.each( etapas, function( key, etapa ) {
+    $j('input[name^="data_inicio[' + key + '"]').val(formatDate(etapa.data_inicio));
+    $j('input[name^="data_fim[' + key + '"]').val(formatDate(etapa.data_fim));
+    $j('input[name^="dias_letivos[' + key + '"]').val(etapa.dias_letivos);
+  });
+}
 
 $j(document).ready(function() {
 

@@ -2,37 +2,79 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasIbgeCode;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
 
 class City extends Model
 {
-    use SoftDeletes;
+    use HasIbgeCode;
+    
+    /**
+     * @var array
+     */
+    protected $fillable = [
+        'state_id', 'name', 'ibge_code',
+    ];
 
-    protected $dates = ['deleted_at'];
-
+    /**
+     * @return BelongsTo
+     */
     public function state()
     {
         return $this->belongsTo(State::class);
     }
 
-    public function parent()
+    /**
+     * @return HasMany
+     */
+    public function districts()
     {
-        return $this->belongsTo(self::class, 'parent_id', 'id');
+        return $this->hasMany(District::class);
     }
 
-    public function updatedBy()
+    /**
+     * @return HasMany
+     */
+    public function places()
     {
-        return $this->belongsTo(Individual::class, 'updated_by', 'id');
+        return $this->hasMany(Place::class);
     }
 
-    public function createdBy()
+    /**
+     * @param string $name
+     *
+     * @return Builder
+     */
+    public static function queryFindByName($name)
     {
-        return $this->belongsTo(Individual::class, 'created_by', 'id');
+        return static::query()->whereRaw("translate(upper(name),'ÅÁÀÃÂÄÉÈÊËÍÌÎÏÓÒÕÔÖÚÙÛÜÇÝÑ','AAAAAAEEEEIIIIOOOOOUUUUCYN') LIKE translate(upper('%{$name}%'),'ÅÁÀÃÂÄÉÈÊËÍÌÎÏÓÒÕÔÖÚÙÛÜÇÝÑ','AAAAAAEEEEIIIIOOOOOUUUUCYN')");
     }
 
-    public function getRegistryOriginDescriptionAttribute()
+    /**
+     * @param int $id
+     *
+     * @return string
+     */
+    public static function getNameById($id)
     {
-        return (new RegistryOrigin)->getDescriptiveValues()[(int) $this->registry_origin];
+        $city = static::query()->find($id);
+
+        return $city->name ?? '';
+    }
+
+    /**
+     * @param string $abbreviation
+     *
+     * @return Collection
+     */
+    public static function getListByAbbreviation($abbreviation)
+    {
+        return static::query()->whereHas('state', function ($query) use ($abbreviation) {
+            $query->where('abbreviation', $abbreviation);
+        })->orderBy('name')->pluck('name', 'id');
     }
 }

@@ -3,6 +3,8 @@
 namespace App\Models\Educacenso;
 
 
+use iEducar\Modules\Educacenso\Model\Deficiencias;
+
 class Registro30 implements RegistroEducacenso
 {
     CONST TIPO_MANAGER = 'manager';
@@ -186,6 +188,8 @@ class Registro30 implements RegistroEducacenso
      */
     public $dadosAluno;
 
+    public $inepPessoa;
+
     /**
      * @return bool
      */
@@ -224,4 +228,59 @@ class Registro30 implements RegistroEducacenso
         return $this->inepServidor;
     }
 
+    /**
+     * @return integer
+     */
+    public function deficienciaMultipla()
+    {
+        $arrayDeficienciasMultiplas = [
+            $this->deficienciaCegueira,
+            $this->deficienciaBaixaVisao,
+            $this->deficienciaSurdez,
+            $this->deficienciaAuditiva,
+            $this->deficienciaSurdoCegueira,
+            $this->deficienciaFisica,
+            $this->deficienciaIntelectual,
+        ];
+
+        if (empty($this->arrayDeficiencias)) {
+            return null;
+        }
+
+        return count(array_keys($arrayDeficienciasMultiplas, 1)) > 1 ? 1 : 0;
+    }
+
+    /**
+     * @return array
+     */
+    public function cursosDeFormacaoSuperiorExtintos()
+    {
+        return [
+            '145F14' => 'Letras - Língua Estrangeira - Licenciatura',
+            '145F17' => 'Letras - Língua Portuguesa e Estrangeira - Licenciatura',
+            '220L03' => 'Letras - Língua Portuguesa e Estrangeira - Bacharelado',
+            '222L01' => 'Letras - Língua Estrangeira - Bacharelado',
+            '443C01' => 'Ciência da Terra - Licenciatura',
+            '999990' => 'Outro curso de formação superior - Licenciatura',
+            '999991' => 'Outro curso de formação superior - Bacharelado',
+            '999992' => 'Outro curso de formação superior - Tecnológico',
+        ];
+    }
+
+    /**
+     * Remove "Altas habilidades/Superdotação" do array de deficiências informado
+     *
+     * @param $arrayDeficiencias
+     * @return string
+     */
+    public static function removeAltasHabilidadesArrayDeficiencias($arrayDeficiencias)
+    {
+        $altasHabilidadesKey = array_search(Deficiencias::ALTAS_HABILIDADES_SUPERDOTACAO, $arrayDeficiencias);
+
+        if ($altasHabilidadesKey !== false) {
+            unset($arrayDeficiencias[$altasHabilidadesKey]);
+        }
+
+        return $arrayDeficiencias;
+    }
 }

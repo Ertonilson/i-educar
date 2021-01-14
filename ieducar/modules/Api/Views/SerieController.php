@@ -11,15 +11,16 @@ class SerieController extends ApiCoreController
 {
     protected function canGetSeries()
     {
-        return $this->validatesPresenceOf('instituicao_id') && $this->validatesPresenceOf('escola_id') && $this->validatesPresenceOf('curso_id');
+        return $this->validatesPresenceOf('instituicao_id');
     }
 
     protected function getSeries()
     {
         if ($this->canGetSeries()) {
             $instituicaoId = $this->getRequest()->instituicao_id;
-            $escolaId = $this->getRequest()->escola_id;
+            $escolaId = $this->getRequest()->escola_id ?: null;
             $cursoId = $this->getRequest()->curso_id;
+            $modified = $this->getRequest()->modified ?: null;
 
             if (is_array($escolaId)) {
                 $escolaId = implode(',', $escolaId);
@@ -29,19 +30,49 @@ class SerieController extends ApiCoreController
                 $cursoId = implode(',', $cursoId);
             }
 
-            $sql = "SELECT distinct s.cod_serie, s.nm_serie, s.idade_ideal
+            $params = [$instituicaoId];
+
+            $sql = "SELECT distinct 
+                    s.cod_serie, 
+                    s.nm_serie, 
+                    s.idade_ideal,
+                    s.ref_cod_curso,
+                    (
+                        CASE s.updated_at >= es.updated_at WHEN TRUE THEN
+                            s.updated_at
+                        ELSE 
+                            es.updated_at
+                        END 
+                    ) AS updated_at,
+                    (
+                        CASE s.ativo WHEN 1 THEN 
+                            NULL 
+                        ELSE 
+                            s.data_exclusao::timestamp(0)
+                        END
+                    ) AS deleted_at
                 FROM pmieducar.serie s
                 INNER JOIN pmieducar.escola_serie es ON es.ref_cod_serie = s.cod_serie
                 INNER JOIN pmieducar.curso c ON s.ref_cod_curso = c.cod_curso
-                WHERE es.ativo = 1
-                AND s.ativo = 1
-                AND c.ativo = 1
-                AND es.ref_cod_escola IN ({$escolaId})
+                WHERE TRUE 
                 AND c.ref_cod_instituicao = $1
-                AND c.cod_curso IN ({$cursoId})
-                ORDER BY s.nm_serie ASC ";
+                AND c.ativo = 1
+            ";
 
-            $params = [$this->getRequest()->instituicao_id];
+            if ($escolaId) {
+                $sql .= " AND es.ref_cod_escola IN ({$escolaId}) ";
+            }
+
+            if ($cursoId) {
+                $sql .= " AND c.cod_curso IN ({$cursoId}) ";
+            }
+
+            if ($modified) {
+                $params[] = $modified;
+                $sql .= ' AND (s.updated_at >= $2 OR es.updated_at >= $2)';
+            }
+
+            $sql .= " ORDER BY updated_at, s.nm_serie ASC";
 
             $series = $this->fetchPreparedQuery($sql, $params);
 
@@ -52,7 +83,10 @@ class SerieController extends ApiCoreController
             $attrs = [
                 'cod_serie' => 'id',
                 'nm_serie' => 'nome',
-                'idade_ideal' => 'idade_padrao'
+                'idade_ideal' => 'idade_padrao',
+                'ref_cod_curso' => 'curso_id',
+                'updated_at' => 'updated_at',
+                'deleted_at' => 'deleted_at',
             ];
 
             $series = Portabilis_Array_Utils::filterSet($series, $attrs);
@@ -97,25 +131,42 @@ class SerieController extends ApiCoreController
 
         if (is_array($escolas)) {
             foreach ($escolas as $key => $escola) {
-                $query[$key] = "SELECT distinct s.cod_serie, s.nm_serie
-                              FROM pmieducar.serie s
-                             INNER JOIN pmieducar.escola_serie es ON es.ref_cod_serie = s.cod_serie
-                             WHERE es.ativo = 1
-                               AND s.ativo = 1
-                               AND es.ref_cod_escola = $escola ";
+                $query[$key] = "
+                    SELECT DISTINCT
+                        s.cod_serie,
+                        s.nm_serie
+                    FROM pmieducar.serie s
+                    INNER JOIN pmieducar.escola_serie es ON es.ref_cod_serie = s.cod_serie
+                    INNER JOIN pmieducar.escola e ON e.cod_escola = es.ref_cod_escola
+                    INNER JOIN pmieducar.escola_curso ec ON ec.ref_cod_escola = e.cod_escola 
+                    INNER JOIN pmieducar.curso c ON c.cod_curso = ec.ref_cod_curso
+                        AND c.cod_curso = s.ref_cod_curso
+                    WHERE true
+                        AND es.ativo = 1
+                        AND s.ativo = 1
+                        AND es.ref_cod_escola = $escola
+                ";
             }
 
             $query = implode("\n INTERSECT \n", $query);
             $orderBy = ' ORDER BY nm_serie ASC ';
             $sql = $query . $orderBy;
         } else {
-            $sql = "SELECT distinct s.cod_serie, s.nm_serie
-                  FROM pmieducar.serie s
-                 INNER JOIN pmieducar.escola_serie es ON es.ref_cod_serie = s.cod_serie
-                 WHERE es.ativo = 1
-                   AND s.ativo = 1
-                   AND es.ref_cod_escola = $escolas
-                 ORDER BY s.nm_serie ASC ";
+            $sql = "
+                SELECT DISTINCT
+                    s.cod_serie,
+                    s.nm_serie
+                FROM pmieducar.serie s
+                INNER JOIN pmieducar.escola_serie es ON es.ref_cod_serie = s.cod_serie
+                INNER JOIN pmieducar.escola e ON e.cod_escola = es.ref_cod_escola
+                INNER JOIN pmieducar.escola_curso ec ON ec.ref_cod_escola = e.cod_escola 
+                INNER JOIN pmieducar.curso c ON c.cod_curso = ec.ref_cod_curso
+                    AND c.cod_curso = s.ref_cod_curso
+                WHERE true
+                    AND es.ativo = 1
+                    AND s.ativo = 1
+                    AND es.ref_cod_escola = $escolas
+                ORDER BY s.nm_serie ASC ";
         }
 
         $series = $this->fetchPreparedQuery($sql);
@@ -197,8 +248,8 @@ class SerieController extends ApiCoreController
 
             $permiteFaixaEtaria = $objSerie->verificaPeriodoCorteEtarioDataNascimento($dataNascimento, $ano);
 
-            $alertaFaixaEtaria = $detSerie['alerta_faixa_etaria'] == 't';
-            $bloquearMatriculaFaixaEtaria = $detSerie['bloquear_matricula_faixa_etaria'] == 't';
+            $alertaFaixaEtaria = $detSerie['alerta_faixa_etaria'];
+            $bloquearMatriculaFaixaEtaria = $detSerie['bloquear_matricula_faixa_etaria'];
 
             $retorno = ['bloqueado' => false, 'mensagem_bloqueio' => ''];
 

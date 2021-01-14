@@ -29,6 +29,10 @@
  * @version     $Id$
  */
 
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Http\File;
+
+
 class PictureController {
 
     var $imageFile;
@@ -37,14 +41,13 @@ class PictureController {
     var $maxHeight;
     var $maxSize;
     var $suportedExtensions;
-    var $imageName;
 
     function __construct($imageFile, $maxWidth = NULL, $maxHeight = NULL, $maxSize = NULL,
                              $suportedExtensions = NULL){
 
-        
+
        $this->imageFile = $imageFile;
-       
+
 
         if ($maxWidth!=null)
             $this->maxWidth = $maxWidth;
@@ -73,21 +76,17 @@ class PictureController {
     * @author Lucas Schmoeller da Silva - lucas@portabilis.com
     * @return String
     */
-    function sendPicture($imageName){
+    function sendPicture(){
 
-        $this->imageName = $imageName;
         $tmp = $this->imageFile["tmp_name"];
-        include('s3_config.php');
-        //Rename image name.
 
-        $actual_image_name = $directory.$this->imageName; 
-        if($s3->putObjectFile($tmp, $bucket , $actual_image_name, S3::ACL_PUBLIC_READ) )
-        {
-                                                
-            $s3file='http://'.$bucket.'.s3.amazonaws.com/'.$actual_image_name;
-            return $s3file;
-        }
-        else{
+        $file = new File($tmp);
+
+        $tenant = config('legacy.app.database.dbname');
+
+        if (Storage::put($tenant, $file)) {
+            return Storage::url($file->hashName($tenant));
+        } else {
             $this->errorMessage = "Ocorreu um erro no servidor ao enviar foto. Tente novamente.";
             return '';
         }
@@ -115,7 +114,7 @@ class PictureController {
             {
                 // File size validation
                 if($size < $this->maxSize){
-                    return true;   
+                    return true;
                 }
                 else{
                     $this->errorMessage = "O cadastro n&atilde;o pode ser realizado, a foto possui um tamanho maior do que o permitido.";
@@ -128,10 +127,10 @@ class PictureController {
             }
         }
         else{
-            $this->errorMessage = "Selecione uma imagem."; 
+            $this->errorMessage = "Selecione uma imagem.";
             return false;
         }
-        $this->errorMessage = "Imagem inv&aacute;lida."; 
+        $this->errorMessage = "Imagem inv&aacute;lida.";
         return false;
     }
     /**
@@ -145,7 +144,7 @@ class PictureController {
     }
 
 
-    function getExtension($name) 
+    function getExtension($name)
     {
         $i = strrpos($name,".");
         if (!$i)

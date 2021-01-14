@@ -1,5 +1,7 @@
 <?php
 
+use App\Services\UrlPresigner;
+use iEducar\Modules\Addressing\LegacyAddressingFields;
 use iEducar\Modules\Educacenso\Model\PaisResidencia;
 use iEducar\Modules\Educacenso\Model\RecursosRealizacaoProvas;
 use iEducar\Modules\Educacenso\Model\VeiculoTransporteEscolar;
@@ -19,6 +21,8 @@ require_once 'Portabilis/String/Utils.php';
 
 class AlunoController extends Portabilis_Controller_Page_EditController
 {
+    use LegacyAddressingFields;
+
     protected $_dataMapper = 'Usuario_Model_FuncionarioDataMapper';
 
     protected $_titulo = 'Cadastro de aluno';
@@ -88,6 +92,10 @@ class AlunoController extends Portabilis_Controller_Page_EditController
             'label' => 'Alfabetizado',
             'help' => '',
         ),
+
+        'emancipado' => [
+            'label' => 'Emancipado'
+        ],
 
         'transporte' => array(
             'label' => 'Transporte escolar público',
@@ -246,8 +254,6 @@ class AlunoController extends Portabilis_Controller_Page_EditController
 
         'motocicleta' => array('label' => 'Possui motocicleta?'),
 
-        'computador' => array('label' => 'Possui computador?'),
-
         'geladeira' => array('label' => 'Possui geladeira?'),
 
         'fogao' => array('label' => 'Possui fogão?'),
@@ -260,9 +266,9 @@ class AlunoController extends Portabilis_Controller_Page_EditController
 
         'televisao' => array('label' => 'Possui televisão?'),
 
-        'celular' => array('label' => 'Possui celular?'),
-
         'telefone' => array('label' => 'Possui telefone?'),
+
+        'recursos_tecnologicos' => array('label' => 'Possui acesso à recursos tecnológicos?'),
 
         'quant_pessoas' => array('label' => 'Quantidades de pessoas residentes no lar'),
 
@@ -342,7 +348,7 @@ class AlunoController extends Portabilis_Controller_Page_EditController
         $configuracoes = new clsPmieducarConfiguracoesGerais();
         $configuracoes = $configuracoes->detalhe();
 
-        $labels_botucatu = $GLOBALS['coreExt']['Config']->app->mostrar_aplicacao == 'botucatu';
+        $labels_botucatu = config('legacy.app.mostrar_aplicacao') == 'botucatu';
 
         if ($configuracoes["justificativa_falta_documentacao_obrigatorio"]) {
             $this->inputsHelper()->hidden('justificativa_falta_documentacao_obrigatorio');
@@ -377,7 +383,7 @@ class AlunoController extends Portabilis_Controller_Page_EditController
         }
 
         if ($foto) {
-            $this->campoRotulo('fotoAtual_', 'Foto atual', '<img height="117" src="' . $foto . '"/>');
+            $this->campoRotulo('fotoAtual_', 'Foto atual', '<img height="117" src="' . (new UrlPresigner())->getPresignedUrl($foto)  . '"/>');
             $this->inputsHelper()->checkbox('file_delete', array('label' => 'Excluir a foto'));
             $this->campoArquivo('file', 'Trocar foto', $this->arquivoFoto, 40, '<br/> <span style="font-style: italic; font-size= 10px;">* Recomenda-se imagens nos formatos jpeg, jpg, png e gif. Tamanho m&aacute;ximo: 150KB</span>');
         } else {
@@ -407,9 +413,9 @@ class AlunoController extends Portabilis_Controller_Page_EditController
         );
 
         // código aluno sistema
-        if ($GLOBALS['coreExt']['Config']->app->alunos->mostrar_codigo_sistema) {
+        if (config('legacy.app.alunos.mostrar_codigo_sistema')) {
             $options = array(
-                'label' => Portabilis_String_Utils::toLatin1($GLOBALS['coreExt']['Config']->app->alunos->codigo_sistema),
+                'label' => Portabilis_String_Utils::toLatin1(config('legacy.app.alunos.codigo_sistema')),
                 'required' => false,
                 'size' => 25,
                 'max_length' => 30
@@ -492,7 +498,7 @@ class AlunoController extends Portabilis_Controller_Page_EditController
             $fisica = new clsFisica($this->cod_pessoa_fj);
             $fisica = $fisica->detalhe();
             $valorCpf = is_numeric($fisica['cpf']) ? int2CPF($fisica['cpf']) : '';
-            $nisPisPasep = $fisica['nis_pis_pasep'];
+            $nisPisPasep = int2Nis($fisica['nis_pis_pasep']);
         }
 
         $this->campoCpf("id_federal", "CPF", $valorCpf);
@@ -852,7 +858,6 @@ class AlunoController extends Portabilis_Controller_Page_EditController
         ];
         $this->inputsHelper()->multipleSearchCustom('', $options, $helperOptions);
 
-        if ($this->getClsPermissoes()->permissao_cadastra(21240, $this->getOption('id_usuario'), 7)) {
             // Cria lista de rotas
             $obj_rota = new clsModulesRotaTransporteEscolar();
             $obj_rota->setOrderBy(' descricao asc ');
@@ -877,7 +882,6 @@ class AlunoController extends Portabilis_Controller_Page_EditController
             // Transporte observacoes
             $options = array('label' => Portabilis_String_Utils::toLatin1($this->_getLabel('transporte_observacao')), 'required' => false, 'size' => 50, 'max_length' => 255);
             $this->inputsHelper()->textArea('transporte_observacao', $options);
-        }
 
         // religião
         $this->inputsHelper()->religiao(array('required' => false, 'label' => Portabilis_String_Utils::toLatin1('Religião')));
@@ -908,9 +912,12 @@ class AlunoController extends Portabilis_Controller_Page_EditController
         $options = array('label' => $this->_getLabel('alfabetizado'), 'value' => 'checked');
         $this->inputsHelper()->checkbox('alfabetizado', $options);
 
-        if ($GLOBALS['coreExt']['Config']->app->alunos->nao_apresentar_campo_alfabetizado) {
+        if (config('legacy.app.alunos.nao_apresentar_campo_alfabetizado')) {
             $this->inputsHelper()->hidden('alfabetizado');
         }
+
+        $options = ['label' => $this->_getLabel('emancipado')];
+        $this->inputsHelper()->checkbox('emancipado', $options);
 
         $this->campoArquivo('documento', Portabilis_String_Utils::toLatin1($this->_getLabel('documento')), $this->documento, 40, Portabilis_String_Utils::toLatin1("<br/> <span id='span-documento' style='font-style: italic; font-size= 10px;''> São aceitos arquivos nos formatos jpg, png, pdf e gif. Tamanho máximo: 250KB</span>", array('escape' => false)));
 
@@ -920,7 +927,9 @@ class AlunoController extends Portabilis_Controller_Page_EditController
 
         $this->inputsHelper()->hidden('url_laudo_medico');
 
-        if ($GLOBALS['coreExt']['Config']->app->alunos->laudo_medico_obrigatorio == 1) {
+        $laudo = config('legacy.app.alunos.laudo_medico_obrigatorio');
+
+        if ($laudo == 1) {
             $this->inputsHelper()->hidden('url_laudo_medico_obrigatorio');
         }
 
@@ -959,7 +968,7 @@ class AlunoController extends Portabilis_Controller_Page_EditController
         $this->inputsHelper()->text('fator_rh', $options);
 
         // sus
-        $options = array('label' => $this->_getLabel('sus'), 'size' => 20, 'max_length' => 20, 'required' => false, 'placeholder' => '');
+        $options = array('label' => $this->_getLabel('sus'), 'size' => 20, 'max_length' => 20, 'required' => config('legacy.app.fisica.exigir_cartao_sus'), 'placeholder' => '');
         $this->inputsHelper()->text('sus', $options);
 
         // alergia_medicamento
@@ -1201,9 +1210,6 @@ class AlunoController extends Portabilis_Controller_Page_EditController
         $options = array('label' => Portabilis_String_Utils::toLatin1($this->_getLabel('motocicleta')), 'required' => false, 'placeholder' => '');
         $this->inputsHelper()->checkbox('motocicleta', $options);
 
-        $options = array('label' => Portabilis_String_Utils::toLatin1($this->_getLabel('computador')), 'required' => false, 'placeholder' => '');
-        $this->inputsHelper()->checkbox('computador', $options);
-
         $options = array('label' => Portabilis_String_Utils::toLatin1($this->_getLabel('geladeira')), 'required' => false, 'placeholder' => '');
         $this->inputsHelper()->checkbox('geladeira', $options);
 
@@ -1225,8 +1231,29 @@ class AlunoController extends Portabilis_Controller_Page_EditController
         $options = array('label' => Portabilis_String_Utils::toLatin1($this->_getLabel('telefone')), 'required' => false, 'placeholder' => '');
         $this->inputsHelper()->checkbox('telefone', $options);
 
-        $options = array('label' => Portabilis_String_Utils::toLatin1($this->_getLabel('celular')), 'required' => false, 'placeholder' => '');
-        $this->inputsHelper()->checkbox('celular', $options);
+
+        $obrigarRecursosTecnologicos = (bool)config('legacy.app.alunos.obrigar_recursos_tecnologicos');
+        $this->CampoOculto('obrigar_recursos_tecnologicos', (int) $obrigarRecursosTecnologicos);
+
+        $helperOptions = array('objectName'  => 'recursos_tecnologicos');
+        $recursosTecnologicos = [
+            'Internet' => 'Acesso à internet (em casa)',
+            'Computador' => 'Computador',
+            'Smartphone' => 'Smartphone (celular)',
+            'WhatsApp' => 'WhatsApp',
+            'Nenhum' => 'Nenhum',
+        ];
+
+        $options = [
+            'label' => $this->_getLabel('recursos_tecnologicos'),
+            'size' => 50,
+            'required' => $obrigarRecursosTecnologicos,
+            'options' => [
+                'values' => $this->recursos_tecnologicos,
+                'all_values' => $recursosTecnologicos,
+            ]
+        ];
+        $this->inputsHelper()->multipleSearchCustom('_', $options, $helperOptions);
 
         $options = array('label' => Portabilis_String_Utils::toLatin1($this->_getLabel('quant_pessoas')), 'size' => 5, 'max_length' => 2, 'required' => false, 'placeholder' => '');
         $this->inputsHelper()->integer('quant_pessoas', $options);
@@ -1298,51 +1325,7 @@ class AlunoController extends Portabilis_Controller_Page_EditController
         $enderecamentoObrigatorio = false;
         $desativarCamposDefinidosViaCep = true;
 
-        $this->campoCep(
-            'cep_',
-            'CEP',
-            '',
-            $enderecamentoObrigatorio,
-            '-',
-            "&nbsp;<img id='lupa' src=\"imagens/lupa.png\" border=\"0\" onclick=\"showExpansivel(500, 550, '<iframe name=\'miolo\' id=\'miolo\' frameborder=\'0\' height=\'100%\' width=\'500\' marginheight=\'0\' marginwidth=\'0\' src=\'/intranet/educar_pesquisa_cep_log_bairro2.php?campo1=bairro_bairro&campo2=bairro_id&campo3=cep&campo4=logradouro_logradouro&campo5=logradouro_id&campo6=distrito_id&campo7=distrito_distrito&campo8=ref_idtlog&campo9=isEnderecoExterno&campo10=cep_&campo11=municipio_municipio&campo12=idtlog&campo13=municipio_id&campo14=zona_localizacao\'></iframe>');\">",
-            false
-        );
-
-        $options = array('label' => Portabilis_String_Utils::toLatin1('Município'), 'required' => $enderecamentoObrigatorio, 'disabled' => $desativarCamposDefinidosViaCep);
-
-        $helperOptions = array(
-            'objectName' => 'municipio',
-            'hiddenInputOptions' => array('options' => array('value' => $this->municipio_id))
-        );
-
-        $this->inputsHelper()->simpleSearchMunicipio('municipio', $options, $helperOptions);
-
-        $options = array('label' => Portabilis_String_Utils::toLatin1('Distrito'), 'required' => $enderecamentoObrigatorio, 'disabled' => $desativarCamposDefinidosViaCep);
-
-        $helperOptions = array(
-            'objectName' => 'distrito',
-            'hiddenInputOptions' => array('options' => array('value' => $this->distrito_id))
-        );
-
-        $this->inputsHelper()->simpleSearchDistrito('distrito', $options, $helperOptions);
-
-        $helperOptions = array('hiddenInputOptions' => array('options' => array('value' => $this->bairro_id)));
-
-        $options = array('label' => Portabilis_String_Utils::toLatin1('Bairro / Zona de Localização - <b>Buscar</b>'), 'required' => $enderecamentoObrigatorio, 'disabled' => $desativarCamposDefinidosViaCep);
-
-        $this->inputsHelper()->simpleSearchBairro('bairro', $options, $helperOptions);
-
-        $options = array(
-            'label' => 'Bairro / Zona de Localização - <b>Cadastrar</b>',
-            'placeholder' => 'Bairro',
-            'value' => $this->bairro,
-            'max_length' => 40,
-            'disabled' => $desativarCamposDefinidosViaCep,
-            'inline' => true,
-            'required' => $enderecamentoObrigatorio
-        );
-
-        $this->inputsHelper()->text('bairro', $options);
+        $this->viewAddress();
 
         // zona localização
         $zonas = App_Model_ZonaLocalizacao::getInstance();
@@ -1369,112 +1352,10 @@ class AlunoController extends Portabilis_Controller_Page_EditController
 
         $this->inputsHelper()->select('pais_residencia', $options);
 
-        $helperOptions = array('hiddenInputOptions' => array('options' => array('value' => $this->logradouro_id)));
-
-        $options = array('label' => 'Tipo / Logradouro - <b>Buscar</b>', 'required' => $enderecamentoObrigatorio, 'disabled' => $desativarCamposDefinidosViaCep);
-
-        $this->inputsHelper()->simpleSearchLogradouro('logradouro', $options, $helperOptions);
-
-        // tipo logradouro
-
-        $options = array(
-            'label' => 'Tipo / Logradouro - <b>Cadastrar</b>',
-            'value' => $this->idtlog,
-            'disabled' => $desativarCamposDefinidosViaCep,
-            'inline' => true,
-            'required' => $enderecamentoObrigatorio
-        );
-
-        $helperOptions = array(
-            'attrName' => 'idtlog'
-        );
-
-        $this->inputsHelper()->tipoLogradouro($options, $helperOptions);
-
-        // logradouro
-        $options = array(
-            'label' => '',
-            'placeholder' => 'Logradouro',
-            'value' => '',
-            'max_length' => 150,
-            'disabled' => $desativarCamposDefinidosViaCep,
-            'required' => $enderecamentoObrigatorio
-        );
-
-        $this->inputsHelper()->text('logradouro', $options);
-
-        // complemento
-        $options = array(
-            'required' => false,
-            'value' => '',
-            'max_length' => 20
-        );
-
-        $this->inputsHelper()->text('complemento', $options);
-
-        // numero
-        $options = array(
-            'required' => false,
-            'label' => 'Número / Letra',
-            'placeholder' => Portabilis_String_Utils::toLatin1('Número'),
-            'value' => '',
-            'max_length' => 6,
-            'inline' => true
-        );
-
-        $this->inputsHelper()->integer('numero', $options);
-
-        // letra
-        $options = array(
-            'required' => false,
-            'label' => '',
-            'placeholder' => 'Letra',
-            'value' => $this->letra,
-            'max_length' => 1,
-            'size' => 15
-        );
-
-        $this->inputsHelper()->text('letra', $options);
-
-        // apartamento
-        $options = array(
-            'required' => false,
-            'label' => 'Nº apartamento / Bloco / Andar',
-            'placeholder' => 'Apartamento',
-            'value' => $this->apartamento,
-            'max_length' => 6,
-            'inline' => true
-        );
-
-        $this->inputsHelper()->integer('apartamento', $options);
-
-        // bloco
-        $options = array(
-            'required' => false,
-            'label' => '',
-            'placeholder' => 'Bloco',
-            'value' => $this->bloco,
-            'max_length' => 20,
-            'size' => 15,
-            'inline' => true
-        );
-
-        $this->inputsHelper()->text('bloco', $options);
-
-        // andar
-        $options = array(
-            'required' => false,
-            'label' => '',
-            'placeholder' => 'Andar',
-            'value' => $this->andar,
-            'max_length' => 2
-        );
-
-        $this->inputsHelper()->integer('andar', $options);
-
-        $script = '/modules/Cadastro/Assets/Javascripts/Endereco.js';
-
-        Portabilis_View_Helper_Application::loadJavascript($this, $script);
+        Portabilis_View_Helper_Application::loadJavascript($this, [
+            '/modules/Cadastro/Assets/Javascripts/Endereco.js',
+        '/modules/Cadastro/Assets/Javascripts/Addresses.js',
+        ]);
 
         $this->loadResourceAssets($this->getDispatcher());
 
@@ -1482,14 +1363,20 @@ class AlunoController extends Portabilis_Controller_Page_EditController
         $instituicao = $clsInstituicao->primeiraAtiva();
         $obrigarCamposCenso = FALSE;
         $obrigarDocumentoPessoa = FALSE;
+        $obrigarTelefonePessoa = FALSE;
+
         if ($instituicao && isset($instituicao['obrigar_campos_censo'])) {
             $obrigarCamposCenso = dbBool($instituicao['obrigar_campos_censo']);
         }
         if ($instituicao && isset($instituicao['obrigar_documento_pessoa'])) {
             $obrigarDocumentoPessoa = dbBool($instituicao['obrigar_documento_pessoa']);
         }
+        if ($instituicao && isset($instituicao['obrigar_telefone_pessoa'])) {
+            $obrigarTelefonePessoa = dbBool($instituicao['obrigar_telefone_pessoa']);
+        }
         $this->CampoOculto('obrigar_campos_censo', (int) $obrigarCamposCenso);
         $this->CampoOculto('obrigar_documento_pessoa', (int) $obrigarDocumentoPessoa);
+        $this->CampoOculto('obrigar_telefone_pessoa', (int) $obrigarTelefonePessoa);
 
         $racas         = new clsCadastroRaca();
         $racas         = $racas->lista(NULL, NULL, NULL, NULL, NULL, NULL, NULL, TRUE);

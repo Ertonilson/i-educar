@@ -63,23 +63,19 @@ class clsListagem extends clsCampos
 
     public function SalvaFiltros()
     {
-        $pathInfoParts = explode('/', Request::server('PATH_INFO'));
-        $file = array_pop($pathInfoParts);
+        $uri = parse_url(Request::server('REQUEST_URI'), PHP_URL_PATH);
         $previousFilters = Session::get('previous_filters') ?? [];
 
         if (empty($_GET)) {
-            if (!empty($previousFilters[$file])) {
-                list($path, $ts) = explode('|', $previousFilters[$file]);
+            if (!empty($previousFilters[$uri])) {
+                list($path, $ts) = explode('|', $previousFilters[$uri]);
                 $diff = now() - (int) $ts;
 
                 if ($diff > 7200) { //duas horas
-                    unset($previousFilters[$file]);
-                    Session::put('previous_filters', $previousFilters);
-
                     return;
                 }
 
-                $path = Request::server('PATH_INFO') . '?' . $path;
+                $path = $uri . '?' . $path;
 
                 return $this->simpleRedirect($path);
             }
@@ -90,7 +86,7 @@ class clsListagem extends clsCampos
                 array_shift($previousFilters);
             }
 
-            $previousFilters[$file] = $params;
+            $previousFilters[$uri] = $params;
 
             Session::put('previous_filters', $previousFilters);
         }
@@ -190,10 +186,15 @@ class clsListagem extends clsCampos
                 }
             }
 
-            /**
-             * HTML do paginador.
-             */
-            $strReturn = '<table class=\'paginacao\' border="0" cellpadding="0" cellspacing="0" align="center"><tr>';
+            $strReturn = <<<HTML
+<table>
+  <tr>
+    <td>Total de registros: {$intTotalRegistros}</td>
+  </tr>
+</table>
+HTML;
+
+            $strReturn .= '<table class=\'paginacao\' border="0" cellpadding="0" cellspacing="0" align="center"><tr>';
 
             // Setas de início e anterior
             $imagem = ($intPaginaAtual > 1) ? 'seta' :'seta_transp';
@@ -225,21 +226,6 @@ class clsListagem extends clsCampos
 
             $this->paginador2 = $strReturn;
         }
-    }
-
-    public function addPaginador($argumento, $inicio, $buffer = false)
-    {
-        $visual = 1 + $this->numeropaginador;
-
-        if (!$buffer || (($this->numeropaginador > $inicio - 6) && ($this->numeropaginador < $inicio + 6))) {
-            if ($inicio == $this->numeropaginador) {
-                $this->paginador[] = [$visual, $argumento."&iniciolimit={$this->numeropaginador}", false];
-            } else {
-                $this->paginador[] = [$visual, $argumento."&iniciolimit={$this->numeropaginador}", true];
-            }
-        }
-
-        $this->numeropaginador++;
     }
 
     /**

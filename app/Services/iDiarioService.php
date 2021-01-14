@@ -55,11 +55,15 @@ class iDiarioService
      *
      * @return bool
      */
-    public function getStepActivityByUnit(int $unitId, int $step): bool
+    public function getStepActivityByUnit(int $unitId, int $year, int $step): bool
     {
         try {
-            $response = $this->get('/api/v2/step_activity', ['unity_id' => $unitId, 'step_number' => $step]);
-            $body = trim((string) $response->getBody());
+            $response = $this->get('/api/v2/step_activity', [
+                'unity_id' => $unitId,
+                'year' => $year,
+                'step_number' => $step
+            ]);
+            $body = trim((string)$response->getBody());
 
             if ($body === 'true') {
                 return true;
@@ -77,11 +81,51 @@ class iDiarioService
      *
      * @return bool
      */
-    public function getStepActivityByClassroom(int $classroomId, int $step): bool
+    public function getStepActivityByClassroom(int $classroomId, int $year, int $step): bool
     {
         try {
-            $response = $this->get('/api/v2/step_activity', ['classroom_id' => $classroomId, 'step_number' => $step]);
-            $body = trim((string) $response->getBody());
+            $response = $this->get('/api/v2/step_activity', [
+                'classroom_id' => $classroomId,
+                'year' => $year,
+                'step_number' => $step
+            ]);
+            $body = trim((string)$response->getBody());
+
+            if ($body === 'true') {
+                return true;
+            }
+        } catch (Exception $e) {
+            return false;
+        }
+
+        return false;
+    }
+
+    public function getTeacherClassroomsActivity(int $teacherId, int $classroomId): bool
+    {
+        try {
+            $response = $this->get('/api/v2/teacher_classrooms/has_activities', ['teacher_id' => $teacherId, 'classroom_id' => $classroomId]);
+            $body = trim((string)$response->getBody());
+
+            if ($body === 'true') {
+                return true;
+            }
+        } catch (Exception $e) {
+            return false;
+        }
+
+        return false;
+    }
+
+    public function getClassroomsActivityByDiscipline(array $classroomId, int $disciplineId): bool
+    {
+        $data = [
+            'classrooms' => implode(',', $classroomId),
+            'discipline' => $disciplineId
+        ];
+        try {
+            $response = $this->get('/api/v2/discipline_activity', $data);
+            $body = trim((string)$response->getBody());
 
             if ($body === 'true') {
                 return true;
@@ -107,5 +151,11 @@ class iDiarioService
                 'token' => $this->apiToken
             ]
         ]);
+    }
+
+    public static function hasIdiarioConfigurations()
+    {
+        return !empty(config('legacy.config.url_novo_educacao'))
+            && !empty(config('legacy.config.token_novo_educacao'));
     }
 }

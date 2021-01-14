@@ -9,6 +9,10 @@ require_once 'include/pessoa/clsCadastroFisicaRaca.inc.php';
 
 require_once 'App/Model/ZonaLocalizacao.php';
 
+use App\Models\LegacyIndividual;
+use App\Services\FileService;
+use App\Services\UrlPresigner;
+
 class clsIndex extends clsBase
 {
     public function Formular()
@@ -63,7 +67,7 @@ class indice extends clsDetalhe
         $caminhoFoto = $objFoto->detalhe();
         if ($caminhoFoto!=false) {
             $this->addDetalhe(['Nome', $detalhe['nome'].'
-                <p><img height="117" src="'.$caminhoFoto['caminho'].'"/></p>']);
+                <p><img height="117" src="' . (new UrlPresigner())->getPresignedUrl($caminhoFoto['caminho']) . '"/></p>']);
         } else {
             $this->addDetalhe(['Nome', $detalhe['nome']]);
         }
@@ -95,11 +99,7 @@ class indice extends clsDetalhe
                 $end = ' nº ' . $detalhe['numero'];
             }
 
-            if ($detalhe['apartamento']) {
-                $end .= ' apto ' . $detalhe['apartamento'];
-            }
-
-            $this->addDetalhe(['Endereço',strtolower($detalhe['idtlog']) . ': ' . $detalhe['logradouro'] . ' ' . $end]);
+            $this->addDetalhe(['Endereço', $detalhe['logradouro'] . ' ' . $end]);
         }
 
         if ($detalhe['complemento']) {
@@ -159,6 +159,13 @@ class indice extends clsDetalhe
 
         if ($detalhe['sexo']) {
             $this->addDetalhe(['Sexo', $detalhe['sexo'] == 'M' ? 'Masculino' : 'Feminino']);
+        }
+
+        $fileService = new FileService(new UrlPresigner);
+        $files = $fileService->getFiles(LegacyIndividual::find($cod_pessoa));
+
+        if (count($files) > 0) {
+            $this->addHtml(view('uploads.upload-details', ['files' => $files])->render());
         }
 
         $obj_permissao = new clsPermissoes();

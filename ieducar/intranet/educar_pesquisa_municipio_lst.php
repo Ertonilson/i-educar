@@ -1,30 +1,8 @@
 <?php
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-    *                                                                        *
-    *   @author Prefeitura Municipal de Itajaí                               *
-    *   @updated 29/03/2007                                                  *
-    *   Pacote: i-PLB Software Público Livre e Brasileiro                    *
-    *                                                                        *
-    *   Copyright (C) 2006  PMI - Prefeitura Municipal de Itajaí             *
-    *                       ctima@itajai.sc.gov.br                           *
-    *                                                                        *
-    *   Este  programa  é  software livre, você pode redistribuí-lo e/ou     *
-    *   modificá-lo sob os termos da Licença Pública Geral GNU, conforme     *
-    *   publicada pela Free  Software  Foundation,  tanto  a versão 2 da     *
-    *   Licença   como  (a  seu  critério)  qualquer  versão  mais  nova.    *
-    *                                                                        *
-    *   Este programa  é distribuído na expectativa de ser útil, mas SEM     *
-    *   QUALQUER GARANTIA. Sem mesmo a garantia implícita de COMERCIALI-     *
-    *   ZAÇÃO  ou  de ADEQUAÇÃO A QUALQUER PROPÓSITO EM PARTICULAR. Con-     *
-    *   sulte  a  Licença  Pública  Geral  GNU para obter mais detalhes.     *
-    *                                                                        *
-    *   Você  deve  ter  recebido uma cópia da Licença Pública Geral GNU     *
-    *   junto  com  este  programa. Se não, escreva para a Free Software     *
-    *   Foundation,  Inc.,  59  Temple  Place,  Suite  330,  Boston,  MA     *
-    *   02111-1307, USA.                                                     *
-    *                                                                        *
-    * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+
+use App\Models\City;
+use App\Models\State;
 use Illuminate\Support\Facades\Session;
 
 require_once ("include/clsBase.inc.php");
@@ -80,9 +58,6 @@ class indice extends clsListagem
 
     function Gerar()
     {
-        global $coreExt;
-        $config = $coreExt['Config']->app->locale;
-
         Session::put([
             'campo1' => $_GET["campo1"] ? $_GET["campo1"] : Session::get('campo1')
         ]);
@@ -102,16 +77,11 @@ class indice extends clsListagem
         ) );
 
 
-        $obj_uf = new clsUf(false, false, 1);
-        $lst_uf = $obj_uf->lista(false, false, false, false, false, "sigla_uf");
-        $array_uf = array('' => 'Todos');
-        foreach ($lst_uf as $uf)
-        {
-            $array_uf[$uf['sigla_uf']] = $uf['nome'];
-        }
+        $array_uf = array('' => 'Todos') + State::getListKeyAbbreviation()->toArray();
+
         if(!isset($this->sigla_uf))
         {
-            $this->sigla_uf = $config->province ? $config->province : '';
+            $this->sigla_uf = config('legacy.app.locale.province', '');
         }
 
 
@@ -128,41 +98,26 @@ class indice extends clsListagem
         $this->limite = 20;
         $this->offset = ( $_GET["pagina_{$this->nome}"] ) ? $_GET["pagina_{$this->nome}"]*$this->limite-$this->limite: 0;
 
-        $obj_municipio = new clsMunicipio();
-        //$obj_municipio->setOrderby( "nome ASC" );
-        //$obj_municipio->setLimite( $this->limite, $this->offset );
+        $cities = City::query()
+            ->with('state')
+            ->where('name', 'ilike', "%{$this->nome}%")
+            ->whereHas('state', function ($query) {
+                $query->where('abbreviation', $this->sigla_uf);
+            })
+            ->orderBy('name')
+            ->paginate(null, ['*'], $pageName = "pagina_{$this->nome}");
 
-        $lista = $obj_municipio->lista($this->nome,$this->sigla_uf,null,null,null,null,null,null,null,$this->offset,$this->limite,"nome ASC");
+        $total = $cities->total();
 
-        $total = $obj_municipio->_total;
-
-        // monta a lista
-        if( is_array( $lista ) && count( $lista ) )
-        {
-            foreach ( $lista AS $registro )
-            {
-
-
-                if( class_exists( "clsUf" ) )
-                {
-                    $obj_sigla_uf = new clsUf($registro["sigla_uf"]->sigla_uf);
-                    $det_sigla_uf = $obj_sigla_uf->detalhe();
-                    $registro["sigla_uf"] = $det_sigla_uf["nome"];
-                }
-                else
-                {
-                    $registro["sigla_uf"] = "Erro na geracao";
-                    echo "<!--\nErro\nClasse nao existente: clsUf\n-->";
-                }
-
-                $campo1 = Session::get('campo1');
-                $script = " onclick=\"addSel1('{$campo1}','{$registro['idmun']}','{$registro['nome']}'); fecha();\"";
-                $this->addLinhas( array(
-                    "<a href=\"javascript:void(0);\" {$script}>{$registro["nome"]}</a>",
-                    "<a href=\"javascript:void(0);\" {$script}>{$registro["sigla_uf"]}</a>"
-                ) );
-            }
+        foreach ($cities as $city) {
+            $campo1 = Session::get('campo1');
+            $script = " onclick=\"addSel1('{$campo1}','{$city->id}','{$city->name}'); fecha();\"";
+            $this->addLinhas( array(
+                "<a href=\"javascript:void(0);\" {$script}>{$city->name}</a>",
+                "<a href=\"javascript:void(0);\" {$script}>{$city->state->name}</a>"
+            ) );
         }
+
         $this->addPaginador2( "educar_pesquisa_municipio_lst.php", $total, $_GET, $this->nome, $this->limite );
 
         $this->largura = "100%";

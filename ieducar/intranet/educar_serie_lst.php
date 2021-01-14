@@ -49,7 +49,6 @@ class clsIndexBase extends clsBase
   {
     $this->SetTitulo($this->_instituicao . ' i-Educar - S&eacute;rie');
     $this->processoAp = '583';
-    $this->addEstilo("localizacaoSistema");
   }
 }
 
@@ -114,7 +113,7 @@ class indice extends clsListagem
     $this->inputsHelper()->dynamic(array('instituicao', 'escola', 'curso'));
 
     // outros Filtros
-    $this->campoTexto('nm_serie', 'S&eacute;rie', $this->nm_serie, 30, 255, FALSE);
+    $this->campoTexto('nm_serie', 'Série', $this->nm_serie, 30, 255, FALSE);
 
     // Paginador
     $this->limite = 20;

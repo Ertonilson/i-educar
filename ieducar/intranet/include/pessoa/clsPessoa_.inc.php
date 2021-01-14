@@ -1,8 +1,9 @@
 <?php
 
 use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Str;
 
-require_once('include/clsBanco.inc.php');
+require_once 'include/clsBanco.inc.php';
 require_once 'include/modules/clsModulesAuditoriaGeral.inc.php';
 
 class clsPessoa_
@@ -19,14 +20,13 @@ class clsPessoa_
     public $origem_gravacao;
     public $email;
     public $pessoa_logada;
-
     public $banco = 'gestao_homolog';
     public $schema_cadastro = 'cadastro';
     public $tabela_pessoa = 'pessoa';
     public $tabela_endereco = 'endereco_pessoa';
     public $tabela_telefone = 'fone_pessoa';
 
-    public function __construct($int_idpes = false, $str_nome = false, $int_idpes_cad =false, $str_url = false, $int_tipo = false, $int_idpes_rev =false, $str_data_rev = false, $str_email = false)
+    public function __construct($int_idpes = false, $str_nome = false, $int_idpes_cad = false, $str_url = false, $int_tipo = false, $int_idpes_rev = false, $str_data_rev = false, $str_email = false)
     {
         $this->pessoa_logada = Session::get('id_pessoa');
 
@@ -42,9 +42,10 @@ class clsPessoa_
 
     public function cadastra()
     {
+        $db = new clsBanco();
+
         if ($this->nome && $this->tipo) {
             $this->nome = $this->cleanUpName($this->nome);
-            $this->nome = str_replace('\'', '\'\'', $this->nome);
             $campos = '';
             $valores = '';
             if ($this->url) {
@@ -62,7 +63,9 @@ class clsPessoa_
 
             $db = new clsBanco();
 
-            $db->Consulta("INSERT INTO {$this->schema_cadastro}.{$this->tabela_pessoa} (nome, data_cad,tipo,situacao,origem_gravacao,  idsis_cad, operacao $campos) VALUES ('$this->nome', NOW(), '$this->tipo', 'P', 'U', 17, 'I' $valores)");
+            $slug = Str::lower(Str::slug($this->nome, ' '));
+
+            $db->Consulta("INSERT INTO {$this->schema_cadastro}.{$this->tabela_pessoa} (nome, slug, data_cad,tipo,situacao,origem_gravacao, operacao $campos) VALUES ('$this->nome', '{$slug}', NOW(), '$this->tipo', 'P', 'U', 'I' $valores)");
             $this->idpes = $db->InsertId("{$this->schema_cadastro}.seq_pessoa");
             if ($this->idpes) {
                 $detalhe = $this->detalhe();
@@ -76,23 +79,25 @@ class clsPessoa_
 
     public function edita()
     {
-        //Cadastro de dados na tabela de pessoa
         if ($this->idpes) {
             $set = '';
             $gruda = '';
 
-            if ($this->url || $this->url==='') {
+            if ($this->url || $this->url === '') {
                 $set .= " url =  '$this->url' ";
                 $gruda = ', ';
             }
-            if ($this->email || $this->email==='') {
+            if ($this->email || $this->email === '') {
                 $set .= "$gruda email = '$this->email' ";
                 $gruda = ', ';
             }
-            if ($this->nome || $this->nome==='') {
+            if ($this->nome || $this->nome === '') {
                 $this->nome = $this->cleanUpName($this->nome);
                 $this->nome = str_replace('\'', '\'\'', $this->nome);
-                $set .= "$gruda nome = '$this->nome' ";
+
+                $slug = Str::lower(Str::slug($this->nome, ' '));
+
+                $set .= "$gruda nome = '$this->nome', slug = '{$slug}' ";
                 $gruda = ', ';
             }
 
@@ -123,7 +128,7 @@ class clsPessoa_
         return false;
     }
 
-    public function lista($str_nome = false, $inicio_limite = false, $qtd_registros = false, $str_orderBy = false, $arrayint_idisin=false, $arrayint_idnotin = false, $str_tipo_pessoa = false, $str_email = false, $str_data_cad_ini = false, $str_data_cad_fim = false)
+    public function lista($str_nome = false, $inicio_limite = false, $qtd_registros = false, $str_orderBy = false, $arrayint_idisin = false, $arrayint_idnotin = false, $str_tipo_pessoa = false, $str_email = false, $str_data_cad_ini = false, $str_data_cad_fim = false)
     {
         $whereAnd = 'WHERE ';
         $where = '';
@@ -140,7 +145,7 @@ class clsPessoa_
         if (is_array($arrayint_idisin)) {
             $ok = true;
             foreach ($arrayint_idisin as $val) {
-                if (! is_numeric($val)) {
+                if (!is_numeric($val)) {
                     $ok = false;
                 }
             }
@@ -153,7 +158,7 @@ class clsPessoa_
         if (is_array($arrayint_idnotin)) {
             $ok = true;
             foreach ($arrayint_idnotin as $val) {
-                if (! is_numeric($val)) {
+                if (!is_numeric($val)) {
                     $ok = false;
                 }
             }
@@ -196,92 +201,25 @@ class clsPessoa_
         $db = new clsBanco($this->banco);
         $total = $db->UnicoCampo("SELECT count(0) FROM cadastro.pessoa $where");
 
-        //echo "SELECT idpes, nome, idpes_cad, data_cad, url, tipo, idpes_rev, data_rev, situacao, origem_gravacao, email FROM cadastro.pessoa $where $orderBy $limite";
         $db->Consulta("SELECT idpes, nome, idpes_cad, data_cad, url, tipo, idpes_rev, data_rev, situacao, origem_gravacao, email FROM cadastro.pessoa $where $orderBy $limite");
-        /*
-            Ordem de retorno da lista:
-            1   2   3       4       5   6   7       8       9       10
-            idpes,  nome,   idpes_cad,  data_cad,   url,    tipo,   data_rev,   situacao,   origem_grav,    email
-        */
+
         $resultado = [];
+
         while ($db->ProximoRegistro()) {
             $tupla = $db->Tupla();
             $nome = mb_strtolower($tupla['nome']);
             $arrayNome = explode(' ', $nome);
-            $nome ='';
+            $nome = '';
             foreach ($arrayNome as $parte) {
                 if ($parte != 'de' && $parte != 'da' && $parte != 'dos' && $parte != 'do' && $parte != 'das' && $parte != 'e') {
-                    $nome .= mb_strtoupper(mb_substr($parte, 0, 1)).mb_substr($parte, 1).' ';
+                    $nome .= mb_strtoupper(mb_substr($parte, 0, 1)) . mb_substr($parte, 1) . ' ';
                 } else {
-                    $nome .= $parte.' ';
+                    $nome .= $parte . ' ';
                 }
             }
             $tupla['nome'] = $nome;
-            $tupla['total']= $total;
+            $tupla['total'] = $total;
             $resultado[] = $tupla;
-        }
-        if (count($resultado) > 0) {
-            return $resultado;
-        }
-
-        return false;
-    }
-
-    public function listaCod($str_nome = false, $inicio_limite = false, $qtd_registros = false, $str_orderBy = false, $arrayint_idisin=false, $arrayint_idnotin = false, $str_tipo_pessoa = false)
-    {
-        $whereAnd = 'WHERE ';
-        $where = '';
-        if (is_string($str_nome)) {
-            $where .= "{$whereAnd} fcn_upper_nrm(nome) ILIKE fcn_upper_nrm('%{$str_nome}%') ";
-            $whereAnd = ' AND ';
-        }
-        if (is_string($str_tipo_pessoa)) {
-            $where .= "{$whereAnd}tipo = '$str_tipo_pessoa' ";
-            $whereAnd = ' AND ';
-        }
-
-        if (is_array($arrayint_idisin)) {
-            $ok = true;
-            foreach ($arrayint_idisin as $val) {
-                if (! is_numeric($val)) {
-                    $ok = false;
-                }
-            }
-            if ($ok) {
-                $where .= "{$whereAnd}idpes IN ( " . implode(',', $arrayint_idisin) . ' )';
-                $whereAnd = ' AND ';
-            }
-        }
-
-        if (is_array($arrayint_idnotin)) {
-            $ok = true;
-            foreach ($arrayint_idnotin as $val) {
-                if (! is_numeric($val)) {
-                    $ok = false;
-                }
-            }
-            if ($ok) {
-                $where .= "{$whereAnd}idpes NOT IN ( " . implode(',', $arrayint_idnotin) . ' )';
-                $whereAnd = ' AND ';
-            }
-        }
-        if ($inicio_limite !== false && $qtd_registros) {
-            $limite = "LIMIT $qtd_registros OFFSET $inicio_limite ";
-        }
-
-        $orderBy = ' ORDER BY ';
-        if ($str_orderBy) {
-            $orderBy .= "$str_orderBy ";
-        } else {
-            $orderBy .= 'nome ';
-        }
-
-        $db = new clsBanco($this->banco);
-        $db->Consulta("SELECT idpes FROM cadastro.pessoa $where $orderBy $limite");
-        $resultado = [];
-        while ($db->ProximoRegistro()) {
-            $tupla = $db->Tupla();
-            $resultado[] = $tupla['idpes'];
         }
         if (count($resultado) > 0) {
             return $resultado;
@@ -297,22 +235,6 @@ class clsPessoa_
             $db->Consulta("SELECT idpes, nome, idpes_cad, data_cad, url, tipo, idpes_rev, data_rev, situacao, origem_gravacao, email FROM cadastro.pessoa WHERE idpes = $this->idpes ");
             if ($db->ProximoRegistro()) {
                 $tupla = $db->Tupla();
-                $nome = mb_strtolower($tupla['nome']);
-                $arrayNome = explode(' ', $nome);
-                $arrNovoNome = [];
-                foreach ($arrayNome as $parte) {
-                    if ($parte != 'de' && $parte != 'da' && $parte != 'dos' && $parte != 'do' && $parte != 'das' && $parte != 'e') {
-                        if ($parte != 's.a' && $parte != 'ltda') {
-                            $arrNovoNome[] = mb_strtoupper(mb_substr($parte, 0, 1)).mb_substr($parte, 1);
-                        } else {
-                            $arrNovoNome[] = mb_strtoupper($parte);
-                        }
-                    } else {
-                        $arrNovoNome[] = $parte;
-                    }
-                }
-                $nome = implode(' ', $arrNovoNome);
-                $tupla['nome'] = $nome;
                 list($this->idpes, $this->nome, $this->idpes_cad, $this->data_cad, $this->url, $this->tipo, $this->idpes_rev, $this->data_rev, $this->situacao, $this->origem_gravacao, $this->email) = $tupla;
 
                 return $tupla;
@@ -325,6 +247,11 @@ class clsPessoa_
     protected function cleanUpName($name)
     {
         $name = preg_replace('/\s+/', ' ', $name);
+        if (config('legacy.app.uppercase_names')) {
+            $name = Str::upper($name);
+        }
+
+        $name = pg_escape_string($name);
 
         return trim($name);
     }

@@ -25,6 +25,11 @@ class LegacySchoolGrade extends Model
         'ref_cod_serie',
         'ref_usuario_cad',
         'data_cadastro',
+        'anos_letivos',
+        'hora_inicial',
+        'hora_final',
+        'hora_inicio_intervalo',
+        'hora_fim_intervalo',
     ];
 
     /**

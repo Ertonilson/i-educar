@@ -49,7 +49,6 @@ class clsIndexBase extends clsBase
   {
     $this->SetTitulo($this->_instituicao . ' i-Educar - Exporta&ccedil;&atilde;o Educacenso');
     $this->processoAp = ($_REQUEST['fase2'] == 1 ? 9998845 : 846);
-    $this->addEstilo('localizacaoSistema');
   }
 }
 
@@ -114,7 +113,7 @@ class indice extends clsCadastro
       $this->campoOculto("fase2", "true");
     }
 
-    $this->campoOculto("enable_export", (int)$GLOBALS['coreExt']['Config']->educacenso->enable_export);
+    $this->campoOculto("enable_export", (int) config('legacy.educacenso.enable_export'));
     $this->inputsHelper()->dynamic(array('ano', 'instituicao', 'escola'));
     $this->inputsHelper()->hidden('escola_em_andamento', [ 'value' => $this->escola_em_andamento ]);
 
@@ -176,7 +175,7 @@ $j(function() {
     let createNotActiveModal = () => {
         $j("body").append(`
 <div id="not_active_modal" class="modal" style="display:none;">
-   <p>Essa escola encontra-se paralisada ou extinta, portanto somente os dados do registro 00 serão analisados e exportados.</p>
+   <p>Essa escola encontra-se paralisada ou extinta, portanto somente os dados dos registros 00, 30 e 40 serão analisados e exportados.</p>
 </div>
         `);
     }

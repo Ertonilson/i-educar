@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\User;
 use DateTime;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -40,6 +42,7 @@ class LegacyEnrollment extends Model
         'data_cadastro',
         'data_enturmacao',
         'sequencial_fechamento',
+        'ativo',
     ];
 
     /**
@@ -53,6 +56,16 @@ class LegacyEnrollment extends Model
      * @var bool
      */
     public $timestamps = false;
+
+    /**
+     * @param Builder $query
+     *
+     * @return Builder
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('ativo', true);
+    }
 
     /**
      * @return DateTime
@@ -112,5 +125,38 @@ class LegacyEnrollment extends Model
     public function schoolClass()
     {
         return $this->belongsTo(LegacySchoolClass::class, 'ref_cod_turma');
+    }
+
+
+    /**
+     * Retorna o turno do aluno.
+     *
+     * Relação com turma_turno.
+     *
+     * @return bool | string
+     */
+    public function period()
+    {
+        return $this->belongsTo(LegacyPeriod::class, 'turno_id')->withDefault();
+    }
+
+    /**
+     * Relação com servidor.
+     *
+     * @return BelongsTo
+     */
+    public function createdBy()
+    {
+        return $this->belongsTo(User::class, 'ref_usuario_cad');
+    }
+
+    /**
+     * Relação com servidor.
+     *
+     * @return BelongsTo
+     */
+    public function updatedBy()
+    {
+        return $this->belongsTo(User::class, 'ref_usuario_exc');
     }
 }

@@ -1,31 +1,7 @@
 <?php
 // error_reporting(E_ERROR);
 // ini_set("display_errors", 1);
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-    *                                                                        *
-    *   @author Prefeitura Municipal de Itajaí                               *
-    *   @updated 29/03/2007                                                  *
-    *   Pacote: i-PLB Software Público Livre e Brasileiro                    *
-    *                                                                        *
-    *   Copyright (C) 2006  PMI - Prefeitura Municipal de Itajaí             *
-    *                       ctima@itajai.sc.gov.br                           *
-    *                                                                        *
-    *   Este  programa  é  software livre, você pode redistribuí-lo e/ou     *
-    *   modificá-lo sob os termos da Licença Pública Geral GNU, conforme     *
-    *   publicada pela Free  Software  Foundation,  tanto  a versão 2 da     *
-    *   Licença   como  (a  seu  critério)  qualquer  versão  mais  nova.    *
-    *                                                                        *
-    *   Este programa  é distribuído na expectativa de ser útil, mas SEM     *
-    *   QUALQUER GARANTIA. Sem mesmo a garantia implícita de COMERCIALI-     *
-    *   ZAÇÃO  ou  de ADEQUAÇÃO A QUALQUER PROPÓSITO EM PARTICULAR. Con-     *
-    *   sulte  a  Licença  Pública  Geral  GNU para obter mais detalhes.     *
-    *                                                                        *
-    *   Você  deve  ter  recebido uma cópia da Licença Pública Geral GNU     *
-    *   junto  com  este  programa. Se não, escreva para a Free Software     *
-    *   Foundation,  Inc.,  59  Temple  Place,  Suite  330,  Boston,  MA     *
-    *   02111-1307, USA.                                                     *
-    *                                                                        *
-    * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 require_once 'include/clsBase.inc.php';
 require_once 'include/clsCadastro.inc.php';
 require_once 'include/clsBanco.inc.php';
@@ -35,13 +11,14 @@ require_once 'modules/Avaliacao/Model/NotaAlunoDataMapper.php';
 require_once 'modules/Avaliacao/Model/NotaComponenteMediaDataMapper.php';
 require_once 'lib/App/Model/MatriculaSituacao.php';
 
+use App\Process;
+
 class clsIndexBase extends clsBase
 {
     function Formular()
     {
         $this->SetTitulo( "{$this->_instituicao} i-Educar - Reclassificar Matr&iacute;cula" );
-        $this->processoAp = "578";
-        $this->addEstilo("localizacaoSistema");
+        $this->processoAp = Process::RECLASSIFY_REGISTRATION;
     }
 }
 
@@ -85,7 +62,7 @@ class indice extends clsCadastro
         $this->ref_cod_aluno=$_GET["ref_cod_aluno"];
 
         $obj_permissoes = new clsPermissoes();
-        $obj_permissoes->permissao_cadastra( 578, $this->pessoa_logada, 7,  "educar_matricula_lst.php?ref_cod_aluno={$this->ref_cod_aluno}" );
+        $obj_permissoes->permissao_cadastra( Process::RECLASSIFY_REGISTRATION, $this->pessoa_logada, 7,  "educar_matricula_lst.php?ref_cod_aluno={$this->ref_cod_aluno}" );
 
         $obj_matricula = new clsPmieducarMatricula($this->cod_matricula);
         $det_matricula = $obj_matricula->detalhe();
@@ -163,7 +140,7 @@ class indice extends clsCadastro
     {
 
         $obj_permissoes = new clsPermissoes();
-        $obj_permissoes->permissao_cadastra( 578, $this->pessoa_logada, 7, "educar_matricula_lst.php?ref_cod_aluno={$this->ref_cod_aluno}" );
+        $obj_permissoes->permissao_cadastra(Process::RECLASSIFY_REGISTRATION, $this->pessoa_logada, 7, "educar_matricula_lst.php?ref_cod_aluno={$this->ref_cod_aluno}" );
 
         $this->data_cancel = Portabilis_Date_Utils::brToPgSQL($this->data_cancel);
 

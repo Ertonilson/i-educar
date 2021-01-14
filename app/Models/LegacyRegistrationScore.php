@@ -2,9 +2,10 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Relations\Pivot;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class LegacyRegistrationScore extends Pivot
+class LegacyRegistrationScore extends Model
 {
     /**
      * @var string
@@ -17,16 +18,6 @@ class LegacyRegistrationScore extends Pivot
     protected $primaryKey = 'id';
 
     /**
-     * @var string
-     */
-    protected $foreignKey = 'cod_matricula';
-
-    /**
-     * @var string
-     */
-    protected $relatedKey = 'matricula_id';
-
-    /**
      * @var array
      */
     protected $fillable = [
@@ -37,4 +28,12 @@ class LegacyRegistrationScore extends Pivot
      * @var bool
      */
     public $timestamps = false;
+
+    /**
+     * @return BelongsTo
+     */
+    public function registration()
+    {
+        return $this->belongsTo(LegacyRegistration::class, 'matricula_id');
+    }
 }

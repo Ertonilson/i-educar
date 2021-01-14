@@ -6,10 +6,10 @@ class clsIndexBase extends clsBase
     {
         $this->SetTitulo($this->_instituicao . ' i-Educar');
         $this->processoAp = '845';
-        $this->addEstilo('localizacaoSistema');
     }
 }
 
+use App\Models\LegacyInstitution;
 use Illuminate\Support\Facades\Session;
 
 class indice extends clsCadastro
@@ -43,7 +43,8 @@ class indice extends clsCadastro
         $this->inputsHelper()->date('data_matricula', ['label' => 'Data da matricula', 'placeholder' => 'dd/mm/yyyy']);
 
         Portabilis_View_Helper_Application::loadJavascript($this, [
-            '/modules/Cadastro/Assets/Javascripts/RematriculaAutomatica.js'
+            '/modules/Cadastro/Assets/Javascripts/RematriculaAutomatica.js',
+            '/modules/Cadastro/Assets/Javascripts/RematriculaAutomaticaModal.js'
         ]);
     }
 
@@ -69,10 +70,15 @@ class indice extends clsCadastro
 
         $inicioAnoLetivo = $registros[0]['data_inicio'];
 
-        if ($this->data_matricula < $inicioAnoLetivo) {
-            Session::now('notice', 'A data da matrícula deve ser posterior ao dia ' . Portabilis_Date_Utils::pgSQLToBr($inicioAnoLetivo) . '.');
+        /** @var LegacyInstitution $instituicao */
+        $instituicao = app(LegacyInstitution::class);
 
-            return false;
+        if ($this->data_matricula < $inicioAnoLetivo) {
+            if (!$instituicao->allowRegistrationOutAcademicYear) {
+                Session::now('notice', 'A data da matrícula deve ser posterior ao dia ' . Portabilis_Date_Utils::pgSQLToBr($inicioAnoLetivo) . '.');
+
+                return false;
+            }
         }
 
         $this->db = new clsBanco();
@@ -141,32 +147,23 @@ class indice extends clsCadastro
                 $mensagem = '';
 
                 if ($count > 0) {
-                    $mensagem .= "Rematriculado os seguinte(s) $count aluno(s) com sucesso em $this->ano_letivo: </br></br>";
-
-                    foreach ($nomesAlunos as $nome) {
-                        $mensagem .= "{$nome} </br>";
-                    }
+                    $mensagem .= "O(s) aluno(s) foram rematriculados com sucesso em $this->ano_letivo. Clique <a href='#' onclick='ModalAlunos.init(\"alunos_rematriculados\");'>aqui</a> para conferir os alunos rematrículados</br>";
 
                     $mensagem .= '</br> As enturmações podem ser realizadas em: Movimentação > Enturmação.';
-
                     if (count($alunosComSaidaDaEscola) > 0) {
-                        $mensagem .= '</br></br>O(s) seguinte(s) aluno(s) não foram rematriculados, pois possuem saída na escola: </br></br>';
-                        foreach ($alunosComSaidaDaEscola as $nome) {
-                            $mensagem .= "{$nome} </br>";
-                        }
+                        $mensagem .= '</br></br>Alguns alunos não foram rematriculados, pois possuem saída na escola. Clique <a href=\'#\' onclick=\'ModalAlunos.init("alunos_com_saida");\'>aqui</a> para ver esses alunos</br>';
                     }
                 }
 
+                $this->inputsHelper()->hidden('alunos_rematriculados', ['value' => implode(',', $nomesAlunos)]);
+                $this->inputsHelper()->hidden('alunos_com_saida', ['value' => implode(',', $alunosComSaidaDaEscola)]);
                 Session::now('success', $mensagem);
             } elseif (count($alunosSemInep) > 0) {
-                $mensagem = 'Não foi possível realizar a rematrícula, pois o(s) seguinte(s) aluno(s) não possuem o INEP cadastrado: </br></br>';
+                $mensagem = 'Não foi possível realizar a rematrícula, pois alguns alunos não possuem o INEP cadastrado. Clique <a href=\'#\' onclick=\'ModalAlunos.init("alunos_sem_inep");\'>aqui</a> para ver esses alunos.</br>';
 
-                foreach ($alunosSemInep as $nome) {
-                    $mensagem .= "{$nome} </br>";
-                }
+                $mensagem .= '</br>Por favor, cadastre o INEP do(s) aluno(s) em: Cadastros > Alunos > Campo: Código INEP.';
 
-                $mensagem .= '</br>Por favor, cadastre o INEP do(s) aluno(s) em: Cadastros > Aluno > Alunos > Campo: Código INEP.';
-
+                $this->inputsHelper()->hidden('alunos_sem_inep', ['value' => implode(',', $alunosSemInep)]);
                 Session::now('error', $mensagem);
             } elseif ($this->existeMatriculasAprovadasReprovadas($escolaId, $cursoId, $serieId, $turmaId, $this->ano_letivo)) {
                 Session::now('error', 'Nenhum aluno rematriculado. Certifique-se que a turma possui alunos aprovados ou reprovados em ' . ($this->ano_letivo - 1) . '.');
@@ -189,7 +186,7 @@ class indice extends clsCadastro
         //Verifica o parametro na série pra exigir inep
         $objSerie = new clsPmieducarSerie($serieId);
         $serieDet = $objSerie->detalhe();
-        $exigeInep = $serieDet['exigir_inep'] == 't';
+        $exigeInep = $serieDet['exigir_inep'];
         //Retorna alunos sem inep
         $alunosSemInep = [];
         $objAluno = new clsPmieducarAluno();

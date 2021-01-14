@@ -2,6 +2,8 @@
 
 namespace App\Models\Educacenso;
 
+use iEducar\Modules\Educacenso\Model\LocalFuncionamento;
+use iEducar\Modules\Educacenso\Model\PaisResidencia;
 use iEducar\Modules\Educacenso\Model\TipoAtendimentoTurma;
 use iEducar\Modules\Educacenso\Model\TipoMediacaoDidaticoPedagogico;
 use Transporte_Model_Responsavel;
@@ -14,7 +16,6 @@ class Registro60 implements RegistroEducacenso, ItemOfRegistro30
     public $inepEscola;
     public $codigoPessoa;
     public $inepAluno;
-    public $codigoTUrma;
     public $inepTurma;
     public $matriculaAluno;
     public $etapaAluno;
@@ -100,6 +101,16 @@ class Registro60 implements RegistroEducacenso, ItemOfRegistro30
     public $veiculoTransporteEscolar;
 
     /**
+     * @var string Campo usado somente na análise
+     */
+    public $localFuncionamentoDiferenciadoTurma;
+
+    /**
+     * @var string Campo usado somente na análise
+     */
+    public $paisResidenciaAluno;
+
+    /**
      * @return bool
      */
     public function transportePublicoRequired()
@@ -109,7 +120,9 @@ class Registro60 implements RegistroEducacenso, ItemOfRegistro30
             TipoMediacaoDidaticoPedagogico::SEMIPRESENCIAL,
         ];
 
-        return $this->tipoAtendimentoTurma == TipoAtendimentoTurma::ESCOLARIZACAO && in_array($this->tipoMediacaoTurma, $tiposMediacaoPresencialSemiPresencial);
+        return $this->tipoAtendimentoTurma == TipoAtendimentoTurma::ESCOLARIZACAO
+            && in_array($this->tipoMediacaoTurma, $tiposMediacaoPresencialSemiPresencial)
+            && $this->paisResidenciaAluno == PaisResidencia::BRASIL;
     }
 
     /**
@@ -131,6 +144,17 @@ class Registro60 implements RegistroEducacenso, ItemOfRegistro30
             $this->tipoAtendimentoTurma == TipoAtendimentoTurma::AEE;
     }
 
+    /**
+     * @return bool
+     */
+    public function recebeEscolarizacaoOutroEspacoIsRequired()
+    {
+        return $this->tipoAtendimentoTurma == TipoAtendimentoTurma::ESCOLARIZACAO &&
+            $this->tipoMediacaoTurma == TipoMediacaoDidaticoPedagogico::PRESENCIAL &&
+            $this->localFuncionamentoDiferenciadoTurma == \App_Model_LocalFuncionamentoDiferenciado::NAO_ESTA &&
+            $this->localFuncionamentoDiferenciadoTurma == \App_Model_LocalFuncionamentoDiferenciado::SALA_ANEXA;
+    }
+
     public function getCodigoPessoa()
     {
         return $this->codigoPessoa;
@@ -145,4 +169,53 @@ class Registro60 implements RegistroEducacenso, ItemOfRegistro30
     {
         return null;
     }
+
+
+    /**
+     * @param $column
+     */
+    public function hydrateModel($arrayColumns)
+    {
+        array_unshift($arrayColumns, null);
+        unset($arrayColumns[0]);
+
+        $this->inepEscola = $arrayColumns[2];
+        $this->inepAluno = $arrayColumns[4];
+        $this->inepTurma = $arrayColumns[6];
+        $this->etapaAluno = $arrayColumns[8];
+        $this->tipoAtendimentoDesenvolvimentoFuncoesGognitivas = $arrayColumns[9];
+        $this->tipoAtendimentoDesenvolvimentoVidaAutonoma = $arrayColumns[10];
+        $this->tipoAtendimentoEnriquecimentoCurricular = $arrayColumns[11];
+        $this->tipoAtendimentoEnsinoInformaticaAcessivel = $arrayColumns[12];
+        $this->tipoAtendimentoEnsinoLibras = $arrayColumns[13];
+        $this->tipoAtendimentoEnsinoLinguaPortuguesa = $arrayColumns[14];
+        $this->tipoAtendimentoEnsinoSoroban = $arrayColumns[15];
+        $this->tipoAtendimentoEnsinoBraile = $arrayColumns[16];
+        $this->tipoAtendimentoEnsinoOrientacaoMobilidade = $arrayColumns[17];
+        $this->tipoAtendimentoEnsinoCaa = $arrayColumns[18];
+        $this->tipoAtendimentoEnsinoRecursosOpticosNaoOpticos = $arrayColumns[19];
+        $this->recebeEscolarizacaoOutroEspacao = $arrayColumns[20];
+        $this->transportePublico = $arrayColumns[21];
+        $this->poderPublicoResponsavelTransporte = $arrayColumns[22];
+        $this->veiculoTransporteBicicleta = $arrayColumns[23];
+        $this->veiculoTransporteMicroonibus = $arrayColumns[24];
+        $this->veiculoTransporteOnibus = $arrayColumns[25];
+        $this->veiculoTransporteTracaoAnimal = $arrayColumns[26];
+        $this->veiculoTransporteVanKonbi = $arrayColumns[27];
+        $this->veiculoTransporteOutro = $arrayColumns[29];
+        $this->veiculoTransporteAquaviarioCapacidade5 = $arrayColumns[29];
+        $this->veiculoTransporteAquaviarioCapacidade5a15 = $arrayColumns[30];
+        $this->veiculoTransporteAquaviarioCapacidade15a35 = $arrayColumns[31];
+        $this->veiculoTransporteAquaviarioCapacidadeAcima35 = (int)$arrayColumns[32];
+    }
 }
+
+
+
+
+
+
+
+
+
+
